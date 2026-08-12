@@ -86,16 +86,6 @@
 				</g>
 			</svg>
 
-			<a
-				v-if="fullHeatmapUrl"
-				:href="fullHeatmapUrl"
-				target="_blank"
-				rel="noopener"
-				class="fgw-full-link">
-				{{ t('integration_forgejo_gitea', 'Show all on Forgejo') }}
-				<OpenInNewIcon :size="14" />
-			</a>
-
 			<div class="fgw-stats-grid">
 				<div class="fgw-stat">
 					<div class="fgw-stat__value">{{ total }}</div>
@@ -126,6 +116,16 @@
 					</div>
 				</div>
 			</div>
+
+			<a
+				v-if="fullHeatmapUrl"
+				:href="fullHeatmapUrl"
+				target="_blank"
+				rel="noopener"
+				class="fgw-more">
+				{{ t('integration_forgejo_gitea', 'Show all') }}
+				<OpenInNewIcon :size="14" />
+			</a>
 		</div>
 	</div>
 </template>
@@ -163,7 +163,8 @@ export default {
 	components: { NcActions, NcActionButton, NcButton, NcLoadingIcon, NcModal, NcSelect, RefreshIcon, CogIcon, ContentSaveIcon, RefreshIntervalPicker, OpenInNewIcon },
 	setup() {
 		const bridge = { fetchLater: () => null }
-		useAutoRefresh(() => bridge.fetchLater())
+		const refresh = useAutoRefresh(() => bridge.fetchLater())
+		Object.assign(bridge, refresh)
 		return { autoRefresh: bridge }
 	},
 	data() {
@@ -506,13 +507,13 @@ body.theme--dark .fgw-heatmap__body[data-brand="gitea"] .fgw-stat__value {
 	color: #a5e19f;
 }
 
-.fgw-full-link {
+.fgw-more {
 	display: inline-flex;
 	align-self: center;
 	align-items: center;
 	gap: 4px;
-	padding: 4px 12px;
-	margin: 0 0 8px;
+	padding: 6px 12px;
+	margin: 8px 0 0;
 	color: var(--color-primary-element);
 	text-decoration: none;
 	font-size: 12px;

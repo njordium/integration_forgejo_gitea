@@ -134,9 +134,10 @@ export default {
 		CogIcon, RefreshIcon, ContentSaveIcon, Avatar, RefreshIntervalPicker,
 	},
 	setup() {
-		const instance = { fetchLater: () => null }
-		useAutoRefresh(() => instance.fetchLater())
-		return { autoRefresh: instance }
+		const bridge = { fetchLater: () => null }
+		const refresh = useAutoRefresh(() => bridge.fetchLater())
+		Object.assign(bridge, refresh)
+		return { autoRefresh: bridge }
 	},
 	data() {
 		return {

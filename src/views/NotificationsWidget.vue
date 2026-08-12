@@ -134,7 +134,8 @@ export default {
 	},
 	setup() {
 		const bridge = { fetchLater: () => null }
-		useAutoRefresh(() => bridge.fetchLater())
+		const refresh = useAutoRefresh(() => bridge.fetchLater())
+		Object.assign(bridge, refresh)
 		return { autoRefresh: bridge }
 	},
 	data() {
