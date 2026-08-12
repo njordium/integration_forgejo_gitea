@@ -152,4 +152,52 @@ class ForgejoGiteaAPIService {
 	public function getUser(string $instanceUrl, string $accessToken): array {
 		return $this->request($instanceUrl, $accessToken, '', 'user');
 	}
+
+	/**
+	 * All repositories the authenticated user can access — paginated,
+	 * bounded to a sane cap so we don't loop forever on huge accounts.
+	 *
+	 * @return array<int, array{full_name: string, name: string, owner: array}>
+	 */
+	public function getUserRepos(string $instanceUrl, string $accessToken, string $userId, int $maxPages = 5): array {
+		$out = [];
+		for ($page = 1; $page <= $maxPages; $page++) {
+			$batch = $this->request($instanceUrl, $accessToken, $userId, 'user/repos', [
+				'page' => $page,
+				'limit' => 50,
+			]);
+			if (isset($batch['error']) || !is_array($batch) || empty($batch)) {
+				break;
+			}
+			foreach ($batch as $repo) {
+				if (isset($repo['full_name'])) {
+					$out[] = $repo;
+				}
+			}
+			if (count($batch) < 50) {
+				break;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Issues for a single repo. Params passed through verbatim
+	 * (state, type, assigned_by, created_by, mentioned_by, limit, page...).
+	 */
+	public function getRepoIssues(
+		string $instanceUrl,
+		string $accessToken,
+		string $userId,
+		string $owner,
+		string $repo,
+		array $params = [],
+	): array {
+		$endpoint = 'repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/issues';
+		$result = $this->request($instanceUrl, $accessToken, $userId, $endpoint, $params);
+		if (isset($result['error'])) {
+			return [];
+		}
+		return is_array($result) ? $result : [];
+	}
 }

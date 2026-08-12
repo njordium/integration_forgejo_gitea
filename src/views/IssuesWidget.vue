@@ -1,0 +1,425 @@
+<template>
+	<div class="fgw-widget">
+		<div class="fgw-toolbar">
+			<NcActions :force-menu="true">
+				<NcActionButton @click="openSettings">
+					<template #icon>
+						<CogIcon :size="20" />
+					</template>
+					{{ t('integration_forgejo_gitea', 'Widget settings') }}
+				</NcActionButton>
+				<NcActionButton @click="refresh">
+					<template #icon>
+						<RefreshIcon :size="20" />
+					</template>
+					{{ t('integration_forgejo_gitea', 'Refresh') }}
+				</NcActionButton>
+			</NcActions>
+		</div>
+
+		<div v-if="loading" class="fgw-status">
+			<NcLoadingIcon :size="24" />
+			<span>{{ t('integration_forgejo_gitea', 'Loading…') }}</span>
+		</div>
+
+		<div v-else-if="notConnected" class="fgw-status">
+			{{ t('integration_forgejo_gitea', 'Connect your account in Personal Settings first.') }}
+		</div>
+
+		<div v-else-if="error" class="fgw-status fgw-error">
+			{{ error }}
+		</div>
+
+		<div v-else-if="!config.repos.length" class="fgw-status">
+			<span>{{ t('integration_forgejo_gitea', 'No repositories selected.') }}</span>
+			<NcButton variant="primary" @click="openSettings">
+				<template #icon><CogIcon :size="16" /></template>
+				{{ t('integration_forgejo_gitea', 'Choose repositories') }}
+			</NcButton>
+		</div>
+
+		<div v-else-if="!items.length" class="fgw-status">
+			{{ emptyLabel }}
+		</div>
+
+		<ul v-else class="fgw-list">
+			<li v-for="item in items" :key="item.id" class="fgw-item">
+				<a :href="item.html_url" target="_blank" rel="noopener" class="fgw-item__link">
+					<div class="fgw-item__row">
+						<span class="fgw-item__number">#{{ item.number }}</span>
+						<span class="fgw-item__title">{{ item.title }}</span>
+					</div>
+					<div class="fgw-item__meta">
+						<span class="fgw-item__repo">{{ item.repo_full_name }}</span>
+						<span v-if="item.comments" class="fgw-item__comments">💬 {{ item.comments }}</span>
+						<span class="fgw-item__updated">{{ formatUpdated(item.updated_at) }}</span>
+					</div>
+				</a>
+			</li>
+		</ul>
+
+		<NcModal v-if="showSettings" size="normal" @close="closeSettings">
+			<div class="fgw-modal">
+				<h3>{{ settingsTitle }}</h3>
+
+				<section class="fgw-modal__section">
+					<h4>{{ t('integration_forgejo_gitea', 'Show issues that are') }}</h4>
+					<div class="fgw-radio-row">
+						<NcCheckboxRadioSwitch
+							v-for="opt in filterOptions"
+							:key="opt.value"
+							:value="opt.value"
+							:checked.sync="draftFilter"
+							name="fgw-filter"
+							type="radio">
+							{{ opt.label }}
+						</NcCheckboxRadioSwitch>
+					</div>
+				</section>
+
+				<section class="fgw-modal__section">
+					<h4>{{ t('integration_forgejo_gitea', 'Repositories') }}</h4>
+					<NcTextField
+						v-model="repoSearch"
+						:placeholder="t('integration_forgejo_gitea', 'Search repositories…')"
+						class="fgw-modal__search" />
+					<div v-if="reposLoading" class="fgw-status">
+						<NcLoadingIcon :size="20" />
+					</div>
+					<div v-else class="fgw-repo-list">
+						<NcCheckboxRadioSwitch
+							v-for="repo in filteredRepos"
+							:key="repo.full_name"
+							:checked="draftRepos.includes(repo.full_name)"
+							@update:checked="toggleRepo(repo.full_name, $event)">
+							{{ repo.full_name }}
+						</NcCheckboxRadioSwitch>
+						<p v-if="!filteredRepos.length && !reposLoading" class="fgw-modal__hint">
+							{{ t('integration_forgejo_gitea', 'No repositories match your search.') }}
+						</p>
+					</div>
+				</section>
+
+				<div class="fgw-modal__actions">
+					<NcButton @click="closeSettings">
+						{{ t('integration_forgejo_gitea', 'Cancel') }}
+					</NcButton>
+					<NcButton variant="primary" :disabled="saving" @click="saveSettings">
+						<template #icon>
+							<NcLoadingIcon v-if="saving" :size="16" />
+							<ContentSaveIcon v-else :size="16" />
+						</template>
+						{{ t('integration_forgejo_gitea', 'Save') }}
+					</NcButton>
+				</div>
+			</div>
+		</NcModal>
+	</div>
+</template>
+
+<script>
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
+import { showError, showSuccess } from '@nextcloud/dialogs'
+import moment from '@nextcloud/moment'
+
+import NcActions from '@nextcloud/vue/components/NcActions'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import NcModal from '@nextcloud/vue/components/NcModal'
+import NcTextField from '@nextcloud/vue/components/NcTextField'
+import CogIcon from 'vue-material-design-icons/Cog.vue'
+import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
+import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
+
+const FILTERS = [
+	{ value: 'assigned', labelKey: 'Assigned to me' },
+	{ value: 'created', labelKey: 'Created by me' },
+	{ value: 'mentioned', labelKey: 'Mentioning me' },
+	{ value: 'all', labelKey: 'All issues in the selected repos' },
+]
+
+export default {
+	name: 'IssuesWidget',
+	components: {
+		NcActions,
+		NcActionButton,
+		NcButton,
+		NcCheckboxRadioSwitch,
+		NcLoadingIcon,
+		NcModal,
+		NcTextField,
+		CogIcon,
+		RefreshIcon,
+		ContentSaveIcon,
+	},
+	props: {
+		state: {
+			type: String,
+			required: true,
+			validator: v => v === 'open' || v === 'closed',
+		},
+	},
+	data() {
+		return {
+			loading: true,
+			error: '',
+			notConnected: false,
+			items: [],
+			config: { repos: [], filter: 'assigned' },
+			instanceUrl: '',
+			showSettings: false,
+			draftRepos: [],
+			draftFilter: 'assigned',
+			repoSearch: '',
+			allRepos: [],
+			reposLoading: false,
+			saving: false,
+		}
+	},
+	computed: {
+		filterOptions() {
+			return FILTERS.map(f => ({
+				value: f.value,
+				label: t('integration_forgejo_gitea', f.labelKey),
+			}))
+		},
+		filteredRepos() {
+			const q = this.repoSearch.trim().toLowerCase()
+			if (!q) return this.allRepos
+			return this.allRepos.filter(r => r.full_name.toLowerCase().includes(q))
+		},
+		emptyLabel() {
+			const opt = FILTERS.find(f => f.value === this.config.filter) || FILTERS[0]
+			return t('integration_forgejo_gitea',
+				this.state === 'open' ? 'No open issues — {filter}.' : 'No closed issues — {filter}.',
+				{ filter: t('integration_forgejo_gitea', opt.labelKey).toLowerCase() })
+		},
+		settingsTitle() {
+			return this.state === 'open'
+				? t('integration_forgejo_gitea', 'Open Issues — settings')
+				: t('integration_forgejo_gitea', 'Closed Issues — settings')
+		},
+	},
+	mounted() {
+		this.fetchIssues()
+	},
+	methods: {
+		async fetchIssues() {
+			this.loading = true
+			this.error = ''
+			this.notConnected = false
+			try {
+				const url = generateUrl('/apps/integration_forgejo_gitea/issues?state=' + this.state)
+				const response = await axios.get(url)
+				this.items = response.data.items || []
+				this.config = response.data.config || { repos: [], filter: 'assigned' }
+				this.instanceUrl = response.data.instance_url || ''
+			} catch (e) {
+				if (e?.response?.status === 401) {
+					this.notConnected = true
+				} else {
+					this.error = e?.response?.data?.error || t('integration_forgejo_gitea', 'Failed to load issues.')
+				}
+			} finally {
+				this.loading = false
+			}
+		},
+		refresh() {
+			this.fetchIssues()
+		},
+		async openSettings() {
+			this.draftRepos = [...this.config.repos]
+			this.draftFilter = this.config.filter
+			this.repoSearch = ''
+			this.showSettings = true
+			await this.fetchRepos()
+		},
+		closeSettings() {
+			this.showSettings = false
+		},
+		async fetchRepos() {
+			this.reposLoading = true
+			try {
+				const url = generateUrl('/apps/integration_forgejo_gitea/repos')
+				const response = await axios.get(url)
+				this.allRepos = response.data.repos || []
+			} catch (e) {
+				showError(t('integration_forgejo_gitea', 'Failed to load repositories.'))
+			} finally {
+				this.reposLoading = false
+			}
+		},
+		toggleRepo(fullName, checked) {
+			if (checked && !this.draftRepos.includes(fullName)) {
+				this.draftRepos.push(fullName)
+			} else if (!checked) {
+				this.draftRepos = this.draftRepos.filter(r => r !== fullName)
+			}
+		},
+		async saveSettings() {
+			this.saving = true
+			try {
+				const values = {
+					[this.state + '_widget_repos']: this.draftRepos,
+					[this.state + '_widget_filter']: this.draftFilter,
+				}
+				await axios.put(generateUrl('/apps/integration_forgejo_gitea/config'), { values })
+				this.showSettings = false
+				showSuccess(t('integration_forgejo_gitea', 'Widget settings saved.'))
+				await this.fetchIssues()
+			} catch (e) {
+				showError(t('integration_forgejo_gitea', 'Failed to save widget settings.'))
+			} finally {
+				this.saving = false
+			}
+		},
+		formatUpdated(iso) {
+			if (!iso) return ''
+			return moment(iso).fromNow()
+		},
+	},
+}
+</script>
+
+<style scoped lang="scss">
+.fgw-widget {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 4px 0;
+	font-size: 13px;
+}
+
+.fgw-toolbar {
+	position: absolute;
+	top: -4px;
+	right: 0;
+}
+
+.fgw-status {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 4px;
+	color: var(--color-text-maxcontrast);
+	flex-wrap: wrap;
+}
+
+.fgw-error {
+	color: var(--color-error);
+}
+
+.fgw-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.fgw-item {
+	border-radius: var(--border-radius);
+
+	&:hover {
+		background: var(--color-background-hover);
+	}
+}
+
+.fgw-item__link {
+	display: block;
+	padding: 6px 8px;
+	color: inherit;
+	text-decoration: none;
+}
+
+.fgw-item__row {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+}
+
+.fgw-item__number {
+	color: var(--color-text-maxcontrast);
+	font-variant-numeric: tabular-nums;
+	flex-shrink: 0;
+}
+
+.fgw-item__title {
+	font-weight: 500;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex: 1;
+}
+
+.fgw-item__meta {
+	display: flex;
+	gap: 8px;
+	margin-top: 2px;
+	font-size: 11px;
+	color: var(--color-text-maxcontrast);
+	flex-wrap: wrap;
+}
+
+.fgw-item__repo {
+	font-family: var(--font-face-monospace, monospace);
+}
+
+.fgw-modal {
+	padding: 20px 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	max-height: 70vh;
+	overflow-y: auto;
+
+	h3 {
+		margin: 0;
+	}
+
+	h4 {
+		margin: 0 0 8px;
+		font-size: 14px;
+	}
+
+	&__section {
+		display: flex;
+		flex-direction: column;
+	}
+
+	&__search {
+		margin-bottom: 8px;
+	}
+
+	&__hint {
+		color: var(--color-text-maxcontrast);
+		margin: 8px 0 0;
+	}
+
+	&__actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
+	}
+}
+
+.fgw-radio-row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.fgw-repo-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	max-height: 320px;
+	overflow-y: auto;
+	padding-right: 4px;
+}
+</style>

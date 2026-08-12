@@ -44,7 +44,8 @@ class ConfigController extends Controller {
 	 */
 	public function setConfig(array $values): DataResponse {
 		foreach ($values as $key => $value) {
-			$this->config->setUserValue($this->userId, Application::APP_ID, $key, (string) $value);
+			$stored = is_array($value) ? json_encode($value) : (string) $value;
+			$this->config->setUserValue($this->userId, Application::APP_ID, $key, $stored);
 		}
 
 		if (isset($values['user_name']) && $values['user_name'] === '') {
