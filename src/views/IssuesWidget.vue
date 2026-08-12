@@ -68,8 +68,8 @@
 						<NcCheckboxRadioSwitch
 							v-for="opt in filterOptions"
 							:key="opt.value"
+							v-model="draftFilter"
 							:value="opt.value"
-							:checked.sync="draftFilter"
 							name="fgw-filter"
 							type="radio">
 							{{ opt.label }}
@@ -79,25 +79,33 @@
 
 				<section class="fgw-modal__section">
 					<h4>{{ t('integration_forgejo_gitea', 'Repositories') }}</h4>
-					<NcTextField
-						v-model="repoSearch"
-						:placeholder="t('integration_forgejo_gitea', 'Search repositories…')"
-						class="fgw-modal__search" />
 					<div v-if="reposLoading" class="fgw-status">
 						<NcLoadingIcon :size="20" />
+						<span>{{ t('integration_forgejo_gitea', 'Loading repositories…') }}</span>
 					</div>
-					<div v-else class="fgw-repo-list">
-						<NcCheckboxRadioSwitch
-							v-for="repo in filteredRepos"
-							:key="repo.full_name"
-							:checked="draftRepos.includes(repo.full_name)"
-							@update:checked="toggleRepo(repo.full_name, $event)">
-							{{ repo.full_name }}
-						</NcCheckboxRadioSwitch>
-						<p v-if="!filteredRepos.length && !reposLoading" class="fgw-modal__hint">
-							{{ t('integration_forgejo_gitea', 'No repositories match your search.') }}
+					<template v-else-if="allRepos.length">
+						<NcSelect
+							v-model="draftRepos"
+							:options="repoOptions"
+							:multiple="true"
+							:close-on-select="false"
+							:searchable="true"
+							:clear-search-on-select="false"
+							:placeholder="t('integration_forgejo_gitea', 'Type to search repositories…')"
+							label="label"
+							:reduce="opt => opt.value"
+							class="fgw-repo-select" />
+						<p class="fgw-modal__hint">
+							{{ n('integration_forgejo_gitea',
+								'{count} repository selected of {total}',
+								'{count} repositories selected of {total}',
+								draftRepos.length,
+								{ count: draftRepos.length, total: allRepos.length }) }}
 						</p>
-					</div>
+					</template>
+					<p v-else class="fgw-modal__hint">
+						{{ t('integration_forgejo_gitea', 'No repositories accessible with the current token.') }}
+					</p>
 				</section>
 
 				<div class="fgw-modal__actions">
@@ -129,7 +137,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
-import NcTextField from '@nextcloud/vue/components/NcTextField'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
@@ -150,7 +158,7 @@ export default {
 		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
 		NcModal,
-		NcTextField,
+		NcSelect,
 		CogIcon,
 		RefreshIcon,
 		ContentSaveIcon,
@@ -173,7 +181,6 @@ export default {
 			showSettings: false,
 			draftRepos: [],
 			draftFilter: 'assigned',
-			repoSearch: '',
 			allRepos: [],
 			reposLoading: false,
 			saving: false,
@@ -186,10 +193,12 @@ export default {
 				label: t('integration_forgejo_gitea', f.labelKey),
 			}))
 		},
-		filteredRepos() {
-			const q = this.repoSearch.trim().toLowerCase()
-			if (!q) return this.allRepos
-			return this.allRepos.filter(r => r.full_name.toLowerCase().includes(q))
+		repoOptions() {
+			return this.allRepos.map(r => ({
+				label: r.full_name,
+				value: r.full_name,
+				description: r.description || '',
+			}))
 		},
 		emptyLabel() {
 			const opt = FILTERS.find(f => f.value === this.config.filter) || FILTERS[0]
@@ -233,7 +242,6 @@ export default {
 		async openSettings() {
 			this.draftRepos = [...this.config.repos]
 			this.draftFilter = this.config.filter
-			this.repoSearch = ''
 			this.showSettings = true
 			await this.fetchRepos()
 		},
@@ -250,13 +258,6 @@ export default {
 				showError(t('integration_forgejo_gitea', 'Failed to load repositories.'))
 			} finally {
 				this.reposLoading = false
-			}
-		},
-		toggleRepo(fullName, checked) {
-			if (checked && !this.draftRepos.includes(fullName)) {
-				this.draftRepos.push(fullName)
-			} else if (!checked) {
-				this.draftRepos = this.draftRepos.filter(r => r !== fullName)
 			}
 		},
 		async saveSettings() {
@@ -375,7 +376,8 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 18px;
-	max-height: 70vh;
+	width: min(560px, 90vw);
+	max-height: 80vh;
 	overflow-y: auto;
 
 	h3 {
@@ -392,13 +394,10 @@ export default {
 		flex-direction: column;
 	}
 
-	&__search {
-		margin-bottom: 8px;
-	}
-
 	&__hint {
 		color: var(--color-text-maxcontrast);
 		margin: 8px 0 0;
+		font-size: 12px;
 	}
 
 	&__actions {
@@ -414,12 +413,7 @@ export default {
 	gap: 4px;
 }
 
-.fgw-repo-list {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	max-height: 320px;
-	overflow-y: auto;
-	padding-right: 4px;
+.fgw-repo-select {
+	width: 100%;
 }
 </style>
