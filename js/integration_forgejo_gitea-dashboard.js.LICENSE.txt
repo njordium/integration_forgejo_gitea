@@ -84,9 +84,9 @@
  * @copyright Copyright (c) 2026 Njordium
  * @license GNU AGPL version 3 or any later version
  *
- * Single shared dashboard bundle — registers all Forgejo/Gitea widgets.
- * Each PHP widget's load() references this same bundle, so it's loaded
- * once regardless of how many widgets the user has on their dashboard.
+ * Single shared dashboard bundle. Registers every Forgejo/Gitea widget id.
+ * All PHP widget classes point their load() at the same bundle name so this
+ * file is loaded once regardless of how many widgets are on the dashboard.
  */
 
 /**

@@ -47,11 +47,13 @@
 				<li v-for="item in visibleItems" :key="item.id" class="fgw-item">
 					<a :href="item.html_url" target="_blank" rel="noopener" class="fgw-item__link">
 						<div class="fgw-item__row">
+							<Avatar :url="item.user.avatar_url" :login="item.user.login" />
 							<span class="fgw-item__number">#{{ item.number }}</span>
 							<span class="fgw-item__title">{{ item.title }}</span>
 						</div>
 						<div class="fgw-item__meta">
 							<span class="fgw-item__repo">{{ item.repo_full_name }}</span>
+							<LabelChip v-for="l in item.labels.slice(0, 3)" :key="l.name" :name="l.name" :color="l.color" />
 							<span v-if="item.comments" class="fgw-item__comments">💬 {{ item.comments }}</span>
 							<span class="fgw-item__updated">{{ formatUpdated(item.updated_at) }}</span>
 						</div>
@@ -153,6 +155,10 @@ import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
 import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
 
+import Avatar from '../components/ItemAvatar.vue'
+import LabelChip from '../components/LabelChip.vue'
+import { useAutoRefresh } from '../composables/useAutoRefresh.js'
+
 const MAX_VISIBLE_ITEMS = 7
 
 const FILTERS = [
@@ -176,6 +182,13 @@ export default {
 		RefreshIcon,
 		ContentSaveIcon,
 		OpenInNewIcon,
+		Avatar,
+		LabelChip,
+	},
+	setup() {
+		const bridge = { fetchLater: () => null }
+		useAutoRefresh(() => bridge.fetchLater())
+		return { autoRefresh: bridge }
 	},
 	props: {
 		state: {
@@ -261,6 +274,7 @@ export default {
 		},
 	},
 	mounted() {
+		this.autoRefresh.fetchLater = () => this.fetchIssues()
 		this.fetchIssues()
 	},
 	methods: {
@@ -414,11 +428,13 @@ export default {
 
 .fgw-item__meta {
 	display: flex;
-	gap: 8px;
+	gap: 6px;
 	margin-top: 2px;
 	font-size: 11px;
 	color: var(--color-text-maxcontrast);
 	flex-wrap: wrap;
+	align-items: center;
+	padding-left: 28px;
 }
 
 .fgw-item__repo {

@@ -279,4 +279,78 @@ class ForgejoGiteaAPIService {
 		$result = $this->request($instanceUrl, $accessToken, $userId, $endpoint, [], 'PATCH');
 		return !isset($result['error']);
 	}
+
+	/**
+	 * Recent commits in a repo. Optional author filter.
+	 */
+	public function getRepoCommits(
+		string $instanceUrl,
+		string $accessToken,
+		string $userId,
+		string $owner,
+		string $repo,
+		array $params = [],
+	): array {
+		$endpoint = 'repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/commits';
+		$result = $this->request($instanceUrl, $accessToken, $userId, $endpoint, $params);
+		if (isset($result['error']) || !is_array($result)) {
+			return [];
+		}
+		return $result;
+	}
+
+	/**
+	 * Open milestones in a repo.
+	 */
+	public function getRepoMilestones(
+		string $instanceUrl,
+		string $accessToken,
+		string $userId,
+		string $owner,
+		string $repo,
+		array $params = [],
+	): array {
+		$endpoint = 'repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/milestones';
+		$result = $this->request($instanceUrl, $accessToken, $userId, $endpoint, $params);
+		if (isset($result['error']) || !is_array($result)) {
+			return [];
+		}
+		return $result;
+	}
+
+	/**
+	 * Repo metadata (stars, forks, open_issues, updated_at, etc.).
+	 */
+	public function getRepoDetails(
+		string $instanceUrl,
+		string $accessToken,
+		string $userId,
+		string $owner,
+		string $repo,
+	): array {
+		$endpoint = 'repos/' . rawurlencode($owner) . '/' . rawurlencode($repo);
+		$result = $this->request($instanceUrl, $accessToken, $userId, $endpoint);
+		if (isset($result['error']) || !is_array($result)) {
+			return [];
+		}
+		return $result;
+	}
+
+	/**
+	 * Latest release in a repo. Returns [] if none exists.
+	 */
+	public function getLatestRelease(
+		string $instanceUrl,
+		string $accessToken,
+		string $userId,
+		string $owner,
+		string $repo,
+	): array {
+		$endpoint = 'repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/releases/latest';
+		$result = $this->request($instanceUrl, $accessToken, $userId, $endpoint);
+		if (isset($result['error']) || !is_array($result)) {
+			return [];
+		}
+		return $result;
+	}
 }

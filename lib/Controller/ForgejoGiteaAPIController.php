@@ -292,6 +292,265 @@ class ForgejoGiteaAPIController extends Controller {
 	}
 
 	/**
+	 * Recent commits authored by the connected user across their selected repos.
+	 * @NoAdminRequired
+	 */
+	public function getCommits(): DataResponse {
+		[$instanceUrl, $accessToken] = $this->credentials();
+		if ($accessToken === '') {
+			return new DataResponse(['error' => 'not_connected'], Http::STATUS_UNAUTHORIZED);
+		}
+		$reposRaw = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'commits_widget_repos', '[]');
+		$decodedRepos = json_decode($reposRaw, true);
+		$repos = is_array($decodedRepos) ? array_values(array_filter($decodedRepos, 'is_string')) : [];
+		$onlyMine = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'commits_widget_only_mine', '1') === '1';
+		$userName = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name');
+
+		if (empty($repos)) {
+			return new DataResponse([
+				'items' => [],
+				'config' => ['repos' => [], 'only_mine' => $onlyMine],
+				'instance_url' => $instanceUrl,
+			]);
+		}
+
+		$items = [];
+		foreach ($repos as $fullName) {
+			if (!str_contains($fullName, '/')) {
+				continue;
+			}
+			[$owner, $repo] = explode('/', $fullName, 2);
+			$params = ['limit' => 10];
+			if ($onlyMine && $userName !== '') {
+				$params['author'] = $userName;
+			}
+			$commits = $this->api->getRepoCommits($instanceUrl, $accessToken, $this->userId ?? '', $owner, $repo, $params);
+			foreach ($commits as $c) {
+				if (!isset($c['sha'])) {
+					continue;
+				}
+				$msg = $c['commit']['message'] ?? '';
+				$msgFirstLine = strtok($msg, "\n") ?: '';
+				$items[] = [
+					'sha' => substr((string) $c['sha'], 0, 7),
+					'sha_full' => (string) $c['sha'],
+					'title' => $msgFirstLine,
+					'html_url' => $c['html_url'] ?? '',
+					'created_at' => $c['created'] ?? ($c['commit']['author']['date'] ?? ''),
+					'author' => [
+						'login' => $c['author']['login'] ?? ($c['commit']['author']['name'] ?? ''),
+						'avatar_url' => $c['author']['avatar_url'] ?? '',
+					],
+					'repo_full_name' => $fullName,
+				];
+			}
+		}
+		usort($items, static fn($a, $b) => strcmp($b['created_at'], $a['created_at']));
+		$items = array_slice($items, 0, 30);
+
+		return new DataResponse([
+			'items' => $items,
+			'config' => ['repos' => $repos, 'only_mine' => $onlyMine],
+			'instance_url' => $instanceUrl,
+		]);
+	}
+
+	/**
+	 * Open milestones with progress across the widget's selected repos.
+	 * @NoAdminRequired
+	 */
+	public function getMilestones(): DataResponse {
+		[$instanceUrl, $accessToken] = $this->credentials();
+		if ($accessToken === '') {
+			return new DataResponse(['error' => 'not_connected'], Http::STATUS_UNAUTHORIZED);
+		}
+		$reposRaw = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'milestones_widget_repos', '[]');
+		$decodedRepos = json_decode($reposRaw, true);
+		$repos = is_array($decodedRepos) ? array_values(array_filter($decodedRepos, 'is_string')) : [];
+
+		if (empty($repos)) {
+			return new DataResponse([
+				'items' => [],
+				'config' => ['repos' => []],
+				'instance_url' => $instanceUrl,
+			]);
+		}
+
+		$items = [];
+		foreach ($repos as $fullName) {
+			if (!str_contains($fullName, '/')) {
+				continue;
+			}
+			[$owner, $repo] = explode('/', $fullName, 2);
+			$milestones = $this->api->getRepoMilestones($instanceUrl, $accessToken, $this->userId ?? '', $owner, $repo, ['state' => 'open', 'limit' => 30]);
+			foreach ($milestones as $m) {
+				if (!isset($m['id'])) {
+					continue;
+				}
+				$open = (int) ($m['open_issues'] ?? 0);
+				$closed = (int) ($m['closed_issues'] ?? 0);
+				$total = $open + $closed;
+				$items[] = [
+					'id' => (int) $m['id'],
+					'title' => $m['title'] ?? '',
+					'html_url' => rtrim($instanceUrl, '/') . '/' . $fullName . '/milestone/' . ((int) $m['id']),
+					'repo_full_name' => $fullName,
+					'open_issues' => $open,
+					'closed_issues' => $closed,
+					'total_issues' => $total,
+					'percent' => $total > 0 ? (int) round(($closed / $total) * 100) : 0,
+					'due_on' => $m['due_on'] ?? '',
+				];
+			}
+		}
+		usort($items, static function ($a, $b) {
+			$da = $a['due_on'] ?: '9999';
+			$db = $b['due_on'] ?: '9999';
+			return strcmp($da, $db);
+		});
+		$items = array_slice($items, 0, 20);
+
+		return new DataResponse([
+			'items' => $items,
+			'config' => ['repos' => $repos],
+			'instance_url' => $instanceUrl,
+		]);
+	}
+
+	/**
+	 * Per-repo stats card list (stars, forks, open issues, last commit, last release).
+	 * @NoAdminRequired
+	 */
+	public function getRepoStats(): DataResponse {
+		[$instanceUrl, $accessToken] = $this->credentials();
+		if ($accessToken === '') {
+			return new DataResponse(['error' => 'not_connected'], Http::STATUS_UNAUTHORIZED);
+		}
+		$reposRaw = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'repo_stats_widget_repos', '[]');
+		$decodedRepos = json_decode($reposRaw, true);
+		$repos = is_array($decodedRepos) ? array_values(array_filter($decodedRepos, 'is_string')) : [];
+
+		if (empty($repos)) {
+			return new DataResponse([
+				'items' => [],
+				'config' => ['repos' => []],
+				'instance_url' => $instanceUrl,
+			]);
+		}
+
+		$items = [];
+		foreach ($repos as $fullName) {
+			if (!str_contains($fullName, '/')) {
+				continue;
+			}
+			[$owner, $repo] = explode('/', $fullName, 2);
+			$details = $this->api->getRepoDetails($instanceUrl, $accessToken, $this->userId ?? '', $owner, $repo);
+			if (empty($details)) {
+				continue;
+			}
+			$release = $this->api->getLatestRelease($instanceUrl, $accessToken, $this->userId ?? '', $owner, $repo);
+			$items[] = [
+				'full_name' => $fullName,
+				'html_url' => $details['html_url'] ?? (rtrim($instanceUrl, '/') . '/' . $fullName),
+				'description' => $details['description'] ?? '',
+				'stars' => (int) ($details['stars_count'] ?? 0),
+				'forks' => (int) ($details['forks_count'] ?? 0),
+				'open_issues' => (int) ($details['open_issues_count'] ?? 0),
+				'open_pulls' => (int) ($details['open_pr_counter'] ?? 0),
+				'updated_at' => $details['updated_at'] ?? '',
+				'default_branch' => $details['default_branch'] ?? '',
+				'latest_release' => isset($release['tag_name']) ? [
+					'tag_name' => $release['tag_name'],
+					'name' => $release['name'] ?? $release['tag_name'],
+					'html_url' => $release['html_url'] ?? '',
+					'published_at' => $release['published_at'] ?? '',
+				] : null,
+			];
+		}
+
+		return new DataResponse([
+			'items' => $items,
+			'config' => ['repos' => $repos],
+			'instance_url' => $instanceUrl,
+		]);
+	}
+
+	/**
+	 * Open pull requests where the connected user is a requested reviewer,
+	 * scoped to the widget's selected repos.
+	 * @NoAdminRequired
+	 */
+	public function getReviewRequests(): DataResponse {
+		[$instanceUrl, $accessToken] = $this->credentials();
+		if ($accessToken === '') {
+			return new DataResponse(['error' => 'not_connected'], Http::STATUS_UNAUTHORIZED);
+		}
+		$reposRaw = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'reviews_widget_repos', '[]');
+		$decodedRepos = json_decode($reposRaw, true);
+		$repos = is_array($decodedRepos) ? array_values(array_filter($decodedRepos, 'is_string')) : [];
+		$userName = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name');
+
+		if (empty($repos) || $userName === '') {
+			return new DataResponse([
+				'items' => [],
+				'config' => ['repos' => $repos],
+				'instance_url' => $instanceUrl,
+			]);
+		}
+
+		$items = [];
+		foreach ($repos as $fullName) {
+			if (!str_contains($fullName, '/')) {
+				continue;
+			}
+			[$owner, $repo] = explode('/', $fullName, 2);
+			$prs = $this->api->getRepoIssues($instanceUrl, $accessToken, $this->userId ?? '', $owner, $repo, [
+				'type' => 'pulls',
+				'state' => 'open',
+				'limit' => 30,
+			]);
+			foreach ($prs as $pr) {
+				$reviewers = $pr['requested_reviewers'] ?? [];
+				$isReviewer = false;
+				foreach ($reviewers as $reviewer) {
+					if (($reviewer['login'] ?? '') === $userName) {
+						$isReviewer = true;
+						break;
+					}
+				}
+				if (!$isReviewer) {
+					continue;
+				}
+				$items[] = [
+					'id' => $pr['id'] ?? 0,
+					'number' => $pr['number'] ?? 0,
+					'title' => $pr['title'] ?? '',
+					'html_url' => $pr['html_url'] ?? '',
+					'updated_at' => $pr['updated_at'] ?? '',
+					'user' => [
+						'login' => $pr['user']['login'] ?? '',
+						'avatar_url' => $pr['user']['avatar_url'] ?? '',
+					],
+					'repo_full_name' => $fullName,
+					'comments' => (int) ($pr['comments'] ?? 0),
+					'labels' => array_map(
+						static fn($l) => ['name' => $l['name'] ?? '', 'color' => $l['color'] ?? ''],
+						is_array($pr['labels'] ?? null) ? $pr['labels'] : []
+					),
+				];
+			}
+		}
+		usort($items, static fn($a, $b) => strcmp($b['updated_at'], $a['updated_at']));
+		$items = array_slice($items, 0, 30);
+
+		return new DataResponse([
+			'items' => $items,
+			'config' => ['repos' => $repos],
+			'instance_url' => $instanceUrl,
+		]);
+	}
+
+	/**
 	 * @NoAdminRequired
 	 */
 	public function getForgejoGiteaAvatar(string $url = ''): DataResponse {

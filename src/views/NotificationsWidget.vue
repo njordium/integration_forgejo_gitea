@@ -82,6 +82,7 @@ import SourceCommitIcon from 'vue-material-design-icons/SourceCommit.vue'
 import FolderIcon from 'vue-material-design-icons/Folder.vue'
 import BellIcon from 'vue-material-design-icons/Bell.vue'
 import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
+import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
 const MAX_VISIBLE_ITEMS = 7
 
@@ -100,6 +101,11 @@ export default {
 		FolderIcon,
 		BellIcon,
 		OpenInNewIcon,
+	},
+	setup() {
+		const bridge = { fetchLater: () => null }
+		useAutoRefresh(() => bridge.fetchLater())
+		return { autoRefresh: bridge }
 	},
 	data() {
 		return {
@@ -122,6 +128,7 @@ export default {
 		},
 	},
 	mounted() {
+		this.autoRefresh.fetchLater = () => this.fetch()
 		this.fetch()
 	},
 	methods: {

@@ -33,10 +33,16 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
 export default {
 	name: 'StatsWidget',
 	components: { NcLoadingIcon },
+	setup() {
+		const bridge = { fetchLater: () => null }
+		useAutoRefresh(() => bridge.fetchLater())
+		return { autoRefresh: bridge }
+	},
 	data() {
 		return {
 			loading: true,
@@ -57,6 +63,7 @@ export default {
 		},
 	},
 	mounted() {
+		this.autoRefresh.fetchLater = () => this.fetch()
 		this.fetch()
 	},
 	methods: {
@@ -163,6 +170,15 @@ export default {
 .fgw-stats__grid[data-brand="forgejo"] .fgw-tile__value,
 .fgw-stats__grid:not([data-brand="gitea"]) .fgw-tile__value {
 	color: #F87A50;
+}
+
+body.theme--dark .fgw-stats__grid[data-brand="gitea"] .fgw-tile__value {
+	color: #a5e19f;
+}
+
+body.theme--dark .fgw-stats__grid[data-brand="forgejo"] .fgw-tile__value,
+body.theme--dark .fgw-stats__grid:not([data-brand="gitea"]) .fgw-tile__value {
+	color: #ffb37a;
 }
 
 .fgw-tile__label {

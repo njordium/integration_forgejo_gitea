@@ -84,6 +84,7 @@ import { generateUrl } from '@nextcloud/router'
 import moment from '@nextcloud/moment'
 
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
 const CELL_SIZE = 12
 const CELL_GAP = 3
@@ -94,6 +95,11 @@ const WEEKS = 26  // ~6 months, sized so cells stay readable in the dashboard ca
 export default {
 	name: 'HeatmapWidget',
 	components: { NcLoadingIcon },
+	setup() {
+		const bridge = { fetchLater: () => null }
+		useAutoRefresh(() => bridge.fetchLater())
+		return { autoRefresh: bridge }
+	},
 	data() {
 		return {
 			CELL_SIZE,
@@ -218,6 +224,7 @@ export default {
 		},
 	},
 	mounted() {
+		this.autoRefresh.fetchLater = () => this.fetch()
 		this.fetch()
 	},
 	methods: {
@@ -295,7 +302,11 @@ export default {
 }
 
 body.theme--dark .fgw-cell {
-	&--level-0 { fill: var(--color-background-dark, #22262e); }
+	&--level-0 { fill: rgba(255, 255, 255, 0.08); }
+	&--level-1 { fill: #7a3d20; }
+	&--level-2 { fill: #b0562a; }
+	&--level-3 { fill: #e0722e; }
+	&--level-4 { fill: #ffb37a; }
 }
 
 .fgw-heatmap__body[data-brand="gitea"] .fgw-cell {
@@ -303,6 +314,13 @@ body.theme--dark .fgw-cell {
 	&--level-2 { fill: #7fc47a; }
 	&--level-3 { fill: #4a9942; }
 	&--level-4 { fill: #2c6a25; }
+}
+
+body.theme--dark .fgw-heatmap__body[data-brand="gitea"] .fgw-cell {
+	&--level-1 { fill: #234721; }
+	&--level-2 { fill: #3e7a3a; }
+	&--level-3 { fill: #6ab365; }
+	&--level-4 { fill: #a5e19f; }
 }
 
 .fgw-stats-grid {
@@ -330,8 +348,16 @@ body.theme--dark .fgw-cell {
 	color: #F87A50;
 }
 
+body.theme--dark .fgw-stat__value {
+	color: #ffb37a;
+}
+
 .fgw-heatmap__body[data-brand="gitea"] .fgw-stat__value {
 	color: #609926;
+}
+
+body.theme--dark .fgw-heatmap__body[data-brand="gitea"] .fgw-stat__value {
+	color: #a5e19f;
 }
 
 .fgw-stat__label {
