@@ -50,6 +50,10 @@
 			<div class="fgw-modal">
 				<h3>{{ t('integration_forgejo_gitea', 'Pending reviews — settings') }}</h3>
 				<section class="fgw-modal__section">
+					<h4>{{ t('integration_forgejo_gitea', 'Refresh frequency') }}</h4>
+					<RefreshIntervalPicker v-model="draftRefreshSeconds" />
+				</section>
+				<section class="fgw-modal__section">
 					<h4>{{ t('integration_forgejo_gitea', 'Repositories') }}</h4>
 					<div v-if="reposLoading" class="fgw-status"><NcLoadingIcon :size="20" /></div>
 					<template v-else-if="allRepos.length">
@@ -107,6 +111,7 @@ import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
 
 import Avatar from '../components/ItemAvatar.vue'
 import LabelChip from '../components/LabelChip.vue'
+import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
 const MAX_VISIBLE = 7
@@ -115,7 +120,7 @@ export default {
 	name: 'PendingReviewsWidget',
 	components: {
 		NcActions, NcActionButton, NcButton, NcLoadingIcon, NcModal, NcSelect,
-		CogIcon, RefreshIcon, ContentSaveIcon, Avatar, LabelChip,
+		CogIcon, RefreshIcon, ContentSaveIcon, Avatar, LabelChip, RefreshIntervalPicker,
 	},
 	setup() {
 		const bridge = { fetchLater: () => null }
@@ -126,7 +131,8 @@ export default {
 		return {
 			loading: true, error: '', notConnected: false,
 			items: [], config: { repos: [] }, instanceUrl: '',
-			showSettings: false, draftRepos: [], allRepos: [], reposLoading: false, saving: false,
+			showSettings: false, draftRepos: [], draftRefreshSeconds: 300, refreshIntervalSeconds: 300,
+			allRepos: [], reposLoading: false, saving: false,
 		}
 	},
 	computed: {
@@ -145,6 +151,11 @@ export default {
 				this.items = r.data.items || []
 				this.config = r.data.config || { repos: [] }
 				this.instanceUrl = r.data.instance_url || ''
+				const newInterval = Number(this.config.refresh_interval_seconds ?? 300)
+				if (newInterval !== this.refreshIntervalSeconds) {
+					this.refreshIntervalSeconds = newInterval
+					this.autoRefresh.setIntervalMs(newInterval * 1000)
+				}
 			} catch (e) {
 				if (e?.response?.status === 401) this.notConnected = true
 				else this.error = t('integration_forgejo_gitea', 'Failed to load pending reviews.')
@@ -155,6 +166,7 @@ export default {
 		refresh() { this.fetch() },
 		async openSettings() {
 			this.draftRepos = [...this.config.repos]
+			this.draftRefreshSeconds = this.refreshIntervalSeconds
 			this.showSettings = true
 			await this.fetchRepos()
 		},
@@ -174,7 +186,10 @@ export default {
 			this.saving = true
 			try {
 				await axios.put(generateUrl('/apps/integration_forgejo_gitea/config'), {
-					values: { reviews_widget_repos: this.draftRepos },
+					values: {
+						reviews_widget_repos: this.draftRepos,
+						reviews_refresh_seconds: String(this.draftRefreshSeconds),
+					},
 				})
 				this.showSettings = false
 				showSuccess(t('integration_forgejo_gitea', 'Widget settings saved.'))

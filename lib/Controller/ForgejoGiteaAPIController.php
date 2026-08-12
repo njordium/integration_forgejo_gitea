@@ -25,6 +25,8 @@ class ForgejoGiteaAPIController extends Controller {
 	private const MAX_ITEMS_PER_WIDGET = 30;
 	private const MAX_PER_REPO = 15;
 	private const NOTIFICATIONS_LIMIT = 20;
+	private const DEFAULT_REFRESH_SECONDS = 300;
+	private const ALLOWED_REFRESH_SECONDS = [0, 30, 60, 300, 900, 1800, 3600];
 
 	public function __construct(
 		string $appName,
@@ -104,10 +106,12 @@ class ForgejoGiteaAPIController extends Controller {
 			$filter = 'assigned';
 		}
 
+		$refreshInterval = $this->readRefreshInterval($configKeyPrefix);
+
 		if (empty($repos)) {
 			return new DataResponse([
 				'items' => [],
-				'config' => ['repos' => [], 'filter' => $filter],
+				'config' => ['repos' => [], 'filter' => $filter, 'refresh_interval_seconds' => $refreshInterval],
 				'instance_url' => $instanceUrl,
 			]);
 		}
@@ -160,7 +164,7 @@ class ForgejoGiteaAPIController extends Controller {
 
 		return new DataResponse([
 			'items' => $items,
-			'config' => ['repos' => $repos, 'filter' => $filter],
+			'config' => ['repos' => $repos, 'filter' => $filter, 'refresh_interval_seconds' => $refreshInterval],
 			'instance_url' => $instanceUrl,
 		]);
 	}
@@ -195,6 +199,7 @@ class ForgejoGiteaAPIController extends Controller {
 			'user_name' => $userName,
 			'instance_url' => $instanceUrl,
 			'instance_type' => $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo'),
+			'refresh_interval_seconds' => $this->readRefreshInterval('heatmap'),
 		]);
 	}
 
@@ -239,6 +244,7 @@ class ForgejoGiteaAPIController extends Controller {
 			'user_name' => $user,
 			'instance_url' => $instanceUrl,
 			'instance_type' => $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo'),
+			'refresh_interval_seconds' => $this->readRefreshInterval('stats'),
 		]);
 	}
 
@@ -275,6 +281,7 @@ class ForgejoGiteaAPIController extends Controller {
 		return new DataResponse([
 			'items' => $items,
 			'instance_url' => $instanceUrl,
+			'refresh_interval_seconds' => $this->readRefreshInterval('notifications'),
 		]);
 	}
 
@@ -350,7 +357,7 @@ class ForgejoGiteaAPIController extends Controller {
 
 		return new DataResponse([
 			'items' => $items,
-			'config' => ['repos' => $repos, 'only_mine' => $onlyMine],
+			'config' => ['repos' => $repos, 'only_mine' => $onlyMine, 'refresh_interval_seconds' => $this->readRefreshInterval('commits')],
 			'instance_url' => $instanceUrl,
 		]);
 	}
@@ -368,10 +375,11 @@ class ForgejoGiteaAPIController extends Controller {
 		$decodedRepos = json_decode($reposRaw, true);
 		$repos = is_array($decodedRepos) ? array_values(array_filter($decodedRepos, 'is_string')) : [];
 
+		$milestonesRefresh = $this->readRefreshInterval('milestones');
 		if (empty($repos)) {
 			return new DataResponse([
 				'items' => [],
-				'config' => ['repos' => []],
+				'config' => ['repos' => [], 'refresh_interval_seconds' => $milestonesRefresh],
 				'instance_url' => $instanceUrl,
 			]);
 		}
@@ -412,7 +420,7 @@ class ForgejoGiteaAPIController extends Controller {
 
 		return new DataResponse([
 			'items' => $items,
-			'config' => ['repos' => $repos],
+			'config' => ['repos' => $repos, 'refresh_interval_seconds' => $milestonesRefresh],
 			'instance_url' => $instanceUrl,
 		]);
 	}
@@ -430,10 +438,11 @@ class ForgejoGiteaAPIController extends Controller {
 		$decodedRepos = json_decode($reposRaw, true);
 		$repos = is_array($decodedRepos) ? array_values(array_filter($decodedRepos, 'is_string')) : [];
 
+		$repoStatsRefresh = $this->readRefreshInterval('repo_stats');
 		if (empty($repos)) {
 			return new DataResponse([
 				'items' => [],
-				'config' => ['repos' => []],
+				'config' => ['repos' => [], 'refresh_interval_seconds' => $repoStatsRefresh],
 				'instance_url' => $instanceUrl,
 			]);
 		}
@@ -470,7 +479,7 @@ class ForgejoGiteaAPIController extends Controller {
 
 		return new DataResponse([
 			'items' => $items,
-			'config' => ['repos' => $repos],
+			'config' => ['repos' => $repos, 'refresh_interval_seconds' => $repoStatsRefresh],
 			'instance_url' => $instanceUrl,
 		]);
 	}
@@ -489,11 +498,12 @@ class ForgejoGiteaAPIController extends Controller {
 		$decodedRepos = json_decode($reposRaw, true);
 		$repos = is_array($decodedRepos) ? array_values(array_filter($decodedRepos, 'is_string')) : [];
 		$userName = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name');
+		$reviewsRefresh = $this->readRefreshInterval('reviews');
 
 		if (empty($repos) || $userName === '') {
 			return new DataResponse([
 				'items' => [],
-				'config' => ['repos' => $repos],
+				'config' => ['repos' => $repos, 'refresh_interval_seconds' => $reviewsRefresh],
 				'instance_url' => $instanceUrl,
 			]);
 		}
@@ -545,7 +555,7 @@ class ForgejoGiteaAPIController extends Controller {
 
 		return new DataResponse([
 			'items' => $items,
-			'config' => ['repos' => $repos],
+			'config' => ['repos' => $repos, 'refresh_interval_seconds' => $reviewsRefresh],
 			'instance_url' => $instanceUrl,
 		]);
 	}
@@ -585,5 +595,17 @@ class ForgejoGiteaAPIController extends Controller {
 		$instanceUrl = rtrim($this->config->getAppValue(Application::APP_ID, 'oauth_instance_url'), '/');
 		$accessToken = $this->userId !== null ? $this->tokens->getAccessToken($this->userId) : '';
 		return [$instanceUrl, $accessToken];
+	}
+
+	/**
+	 * Read a per-widget refresh interval from user config, validated against
+	 * the ALLOWED_REFRESH_SECONDS whitelist. Falls back to DEFAULT_REFRESH_SECONDS
+	 * when unset or invalid.
+	 */
+	private function readRefreshInterval(string $widgetKey): int {
+		$configKey = $widgetKey . '_refresh_seconds';
+		$raw = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, $configKey, (string) self::DEFAULT_REFRESH_SECONDS);
+		$seconds = (int) $raw;
+		return in_array($seconds, self::ALLOWED_REFRESH_SECONDS, true) ? $seconds : self::DEFAULT_REFRESH_SECONDS;
 	}
 }

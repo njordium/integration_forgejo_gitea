@@ -2,12 +2,36 @@
 	<div class="fgw-stats">
 		<div class="fgw-toolbar">
 			<NcActions :force-menu="true">
+				<NcActionButton @click="openSettings">
+					<template #icon><CogIcon :size="20" /></template>
+					{{ t('integration_forgejo_gitea', 'Widget settings') }}
+				</NcActionButton>
 				<NcActionButton @click="fetch">
 					<template #icon><RefreshIcon :size="20" /></template>
 					{{ t('integration_forgejo_gitea', 'Refresh') }}
 				</NcActionButton>
 			</NcActions>
 		</div>
+
+		<NcModal v-if="showSettings" size="normal" @close="closeSettings">
+			<div class="fgw-modal">
+				<h3>{{ t('integration_forgejo_gitea', 'Overview — settings') }}</h3>
+				<section class="fgw-modal__section">
+					<h4>{{ t('integration_forgejo_gitea', 'Refresh frequency') }}</h4>
+					<RefreshIntervalPicker v-model="draftRefreshSeconds" />
+				</section>
+				<div class="fgw-modal__actions">
+					<NcButton @click="closeSettings">{{ t('integration_forgejo_gitea', 'Cancel') }}</NcButton>
+					<NcButton variant="primary" :disabled="saving" @click="saveSettings">
+						<template #icon>
+							<NcLoadingIcon v-if="saving" :size="16" />
+							<ContentSaveIcon v-else :size="16" />
+						</template>
+						{{ t('integration_forgejo_gitea', 'Save') }}
+					</NcButton>
+				</div>
+			</div>
+		</NcModal>
 		<div v-if="loading" class="fgw-status">
 			<NcLoadingIcon :size="24" />
 		</div>
@@ -39,16 +63,22 @@
 <script>
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import NcModal from '@nextcloud/vue/components/NcModal'
 import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
+import CogIcon from 'vue-material-design-icons/Cog.vue'
+import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
+import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
 export default {
 	name: 'StatsWidget',
-	components: { NcActions, NcActionButton, NcLoadingIcon, RefreshIcon },
+	components: { NcActions, NcActionButton, NcButton, NcLoadingIcon, NcModal, RefreshIcon, CogIcon, ContentSaveIcon, RefreshIntervalPicker },
 	setup() {
 		const bridge = { fetchLater: () => null }
 		useAutoRefresh(() => bridge.fetchLater())
@@ -63,6 +93,10 @@ export default {
 			userName: '',
 			instanceUrl: '',
 			instanceType: 'forgejo',
+			showSettings: false,
+			draftRefreshSeconds: 300,
+			refreshIntervalSeconds: 300,
+			saving: false,
 		}
 	},
 	computed: {
@@ -88,6 +122,11 @@ export default {
 				this.userName = response.data.user_name || ''
 				this.instanceUrl = response.data.instance_url || ''
 				this.instanceType = response.data.instance_type || 'forgejo'
+				const newInterval = Number(response.data.refresh_interval_seconds ?? 300)
+				if (newInterval !== this.refreshIntervalSeconds) {
+					this.refreshIntervalSeconds = newInterval
+					this.autoRefresh.setIntervalMs(newInterval * 1000)
+				}
 			} catch (e) {
 				if (e?.response?.status === 401) {
 					this.notConnected = true
@@ -120,6 +159,28 @@ export default {
 		formatValue(v) {
 			if (v >= 50) return '50+'
 			return String(v)
+		},
+		openSettings() {
+			this.draftRefreshSeconds = this.refreshIntervalSeconds
+			this.showSettings = true
+		},
+		closeSettings() {
+			this.showSettings = false
+		},
+		async saveSettings() {
+			this.saving = true
+			try {
+				await axios.put(generateUrl('/apps/integration_forgejo_gitea/config'), {
+					values: { stats_refresh_seconds: String(this.draftRefreshSeconds) },
+				})
+				this.showSettings = false
+				showSuccess(t('integration_forgejo_gitea', 'Widget settings saved.'))
+				await this.fetch()
+			} catch (e) {
+				showError(t('integration_forgejo_gitea', 'Failed to save widget settings.'))
+			} finally {
+				this.saving = false
+			}
 		},
 	},
 }
@@ -202,6 +263,19 @@ body.theme--dark .fgw-stats__grid[data-brand="gitea"] .fgw-tile__value {
 body.theme--dark .fgw-stats__grid[data-brand="forgejo"] .fgw-tile__value,
 body.theme--dark .fgw-stats__grid:not([data-brand="gitea"]) .fgw-tile__value {
 	color: #ffb37a;
+}
+
+.fgw-modal {
+	padding: 20px 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	width: min(480px, 90vw);
+
+	h3 { margin: 0; }
+	h4 { margin: 0 0 8px; font-size: 14px; }
+	&__section { display: flex; flex-direction: column; }
+	&__actions { display: flex; justify-content: flex-end; gap: 8px; }
 }
 
 .fgw-tile__label {

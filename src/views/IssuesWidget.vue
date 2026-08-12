@@ -90,6 +90,11 @@
 				</section>
 
 				<section class="fgw-modal__section">
+					<h4>{{ t('integration_forgejo_gitea', 'Refresh frequency') }}</h4>
+					<RefreshIntervalPicker v-model="draftRefreshSeconds" />
+				</section>
+
+				<section class="fgw-modal__section">
 					<h4>{{ t('integration_forgejo_gitea', 'Repositories') }}</h4>
 					<div v-if="reposLoading" class="fgw-status">
 						<NcLoadingIcon :size="20" />
@@ -157,6 +162,7 @@ import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
 
 import Avatar from '../components/ItemAvatar.vue'
 import LabelChip from '../components/LabelChip.vue'
+import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
 const MAX_VISIBLE_ITEMS = 4
@@ -184,6 +190,7 @@ export default {
 		OpenInNewIcon,
 		Avatar,
 		LabelChip,
+		RefreshIntervalPicker,
 	},
 	setup() {
 		const bridge = { fetchLater: () => null }
@@ -286,6 +293,11 @@ export default {
 				this.items = response.data.items || []
 				this.config = response.data.config || { repos: [], filter: 'assigned' }
 				this.instanceUrl = response.data.instance_url || ''
+				const newInterval = Number(this.config.refresh_interval_seconds ?? 300)
+				if (newInterval !== this.refreshIntervalSeconds) {
+					this.refreshIntervalSeconds = newInterval
+					this.autoRefresh.setIntervalMs(newInterval * 1000)
+				}
 			} catch (e) {
 				if (e?.response?.status === 401) {
 					this.notConnected = true
@@ -302,6 +314,7 @@ export default {
 		async openSettings() {
 			this.draftRepos = [...this.config.repos]
 			this.draftFilter = this.config.filter
+			this.draftRefreshSeconds = this.refreshIntervalSeconds
 			this.showSettings = true
 			await this.fetchRepos()
 		},
@@ -326,9 +339,14 @@ export default {
 				const keyPrefix = this.itemType === 'pulls'
 					? this.state + '_pulls_widget'
 					: this.state + '_widget'
+				// widget-key for refresh matches the read-side prefix in the controller
+				const refreshKey = this.itemType === 'pulls'
+					? this.state + '_pulls_widget_refresh_seconds'
+					: this.state + '_widget_refresh_seconds'
 				const values = {
 					[keyPrefix + '_repos']: this.draftRepos,
 					[keyPrefix + '_filter']: this.draftFilter,
+					[refreshKey]: String(this.draftRefreshSeconds),
 				}
 				await axios.put(generateUrl('/apps/integration_forgejo_gitea/config'), { values })
 				this.showSettings = false

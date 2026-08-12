@@ -53,6 +53,11 @@
 			<div class="fgw-modal">
 				<h3>{{ t('integration_forgejo_gitea', 'Recent commits — settings') }}</h3>
 				<section class="fgw-modal__section">
+					<h4>{{ t('integration_forgejo_gitea', 'Refresh frequency') }}</h4>
+					<RefreshIntervalPicker v-model="draftRefreshSeconds" />
+				</section>
+
+				<section class="fgw-modal__section">
 					<h4>{{ t('integration_forgejo_gitea', 'Show') }}</h4>
 					<NcCheckboxRadioSwitch v-model="draftOnlyMine" type="switch">
 						{{ t('integration_forgejo_gitea', 'Only commits authored by me') }}
@@ -116,6 +121,7 @@ import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
 
 import Avatar from '../components/ItemAvatar.vue'
+import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
 const MAX_VISIBLE = 7
@@ -125,7 +131,7 @@ export default {
 	components: {
 		NcActions, NcActionButton, NcButton, NcCheckboxRadioSwitch,
 		NcLoadingIcon, NcModal, NcSelect,
-		CogIcon, RefreshIcon, ContentSaveIcon, Avatar,
+		CogIcon, RefreshIcon, ContentSaveIcon, Avatar, RefreshIntervalPicker,
 	},
 	setup() {
 		const instance = { fetchLater: () => null }
@@ -143,6 +149,8 @@ export default {
 			showSettings: false,
 			draftRepos: [],
 			draftOnlyMine: true,
+			draftRefreshSeconds: 300,
+			refreshIntervalSeconds: 300,
 			allRepos: [],
 			reposLoading: false,
 			saving: false,
@@ -169,6 +177,11 @@ export default {
 				this.items = r.data.items || []
 				this.config = r.data.config || { repos: [], only_mine: true }
 				this.instanceUrl = r.data.instance_url || ''
+				const newInterval = Number(this.config.refresh_interval_seconds ?? 300)
+				if (newInterval !== this.refreshIntervalSeconds) {
+					this.refreshIntervalSeconds = newInterval
+					this.autoRefresh.setIntervalMs(newInterval * 1000)
+				}
 			} catch (e) {
 				if (e?.response?.status === 401) this.notConnected = true
 				else this.error = t('integration_forgejo_gitea', 'Failed to load commits.')
@@ -180,6 +193,7 @@ export default {
 		async openSettings() {
 			this.draftRepos = [...this.config.repos]
 			this.draftOnlyMine = !!this.config.only_mine
+			this.draftRefreshSeconds = this.refreshIntervalSeconds
 			this.showSettings = true
 			await this.fetchRepos()
 		},
@@ -202,6 +216,7 @@ export default {
 					values: {
 						commits_widget_repos: this.draftRepos,
 						commits_widget_only_mine: this.draftOnlyMine ? '1' : '0',
+						commits_refresh_seconds: String(this.draftRefreshSeconds),
 					},
 				})
 				this.showSettings = false
