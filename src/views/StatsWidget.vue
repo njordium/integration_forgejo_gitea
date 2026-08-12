@@ -142,11 +142,11 @@ export default {
 			if (!this.instanceUrl) return null
 			switch (key) {
 			case 'open_assigned_issues':
-				return `${this.instanceUrl}/issues?state=open&type=your_repositories&assignee=${encodeURIComponent(this.userName)}`
+				return `${this.instanceUrl}/issues?state=open&type=assigned`
 			case 'open_created_issues':
 				return `${this.instanceUrl}/issues?state=open&type=created_by`
 			case 'open_assigned_prs':
-				return `${this.instanceUrl}/pulls?state=open&type=your_repositories&assignee=${encodeURIComponent(this.userName)}`
+				return `${this.instanceUrl}/pulls?state=open&type=assigned`
 			case 'open_created_prs':
 				return `${this.instanceUrl}/pulls?state=open&type=created_by`
 			case 'mentioned_open':
