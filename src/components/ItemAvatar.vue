@@ -35,8 +35,8 @@ export default {
 	height: 20px;
 	border-radius: 50%;
 	overflow: hidden;
-	background: var(--color-primary-element-light, var(--color-background-hover));
-	color: var(--color-primary-element-text, var(--color-main-text));
+	background: var(--color-primary-element, #0071BC);
+	color: var(--color-primary-element-text, #ffffff);
 	font-size: 11px;
 	font-weight: 600;
 	flex-shrink: 0;
