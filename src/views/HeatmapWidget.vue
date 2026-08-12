@@ -74,12 +74,6 @@
 					</div>
 				</div>
 			</div>
-
-			<div class="fgw-legend">
-				<span class="fgw-legend__label">{{ t('integration_forgejo_gitea', 'Less') }}</span>
-				<span v-for="lvl in [0, 1, 2, 3, 4]" :key="lvl" :class="['fgw-legend__cell', 'fgw-cell', 'fgw-cell--level-' + lvl]"></span>
-				<span class="fgw-legend__label">{{ t('integration_forgejo_gitea', 'More') }}</span>
-			</div>
 		</div>
 	</div>
 </template>
@@ -348,19 +342,4 @@ body.theme--dark .fgw-cell {
 	line-height: 1.15;
 }
 
-.fgw-legend {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-	gap: 3px;
-	font-size: 10px;
-	color: var(--color-text-maxcontrast);
-}
-
-.fgw-legend__cell {
-	display: inline-block;
-	width: 10px;
-	height: 10px;
-	border-radius: 2px;
-}
 </style>
