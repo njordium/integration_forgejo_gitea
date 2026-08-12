@@ -30,7 +30,10 @@ class ClosedIssuesWidget implements IWidget {
 	}
 
 	public function getTitle(): string {
-		return $this->l10n->t('Forgejo / Gitea — Closed Issues');
+		$type = $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo');
+		return $type === 'gitea'
+			? $this->l10n->t('Gitea — Closed Issues')
+			: $this->l10n->t('Forgejo — Closed Issues');
 	}
 
 	public function getOrder(): int {

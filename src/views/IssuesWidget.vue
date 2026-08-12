@@ -42,21 +42,31 @@
 			{{ emptyLabel }}
 		</div>
 
-		<ul v-else class="fgw-list">
-			<li v-for="item in items" :key="item.id" class="fgw-item">
-				<a :href="item.html_url" target="_blank" rel="noopener" class="fgw-item__link">
-					<div class="fgw-item__row">
-						<span class="fgw-item__number">#{{ item.number }}</span>
-						<span class="fgw-item__title">{{ item.title }}</span>
-					</div>
-					<div class="fgw-item__meta">
-						<span class="fgw-item__repo">{{ item.repo_full_name }}</span>
-						<span v-if="item.comments" class="fgw-item__comments">💬 {{ item.comments }}</span>
-						<span class="fgw-item__updated">{{ formatUpdated(item.updated_at) }}</span>
-					</div>
-				</a>
-			</li>
-		</ul>
+		<template v-else>
+			<ul class="fgw-list">
+				<li v-for="item in visibleItems" :key="item.id" class="fgw-item">
+					<a :href="item.html_url" target="_blank" rel="noopener" class="fgw-item__link">
+						<div class="fgw-item__row">
+							<span class="fgw-item__number">#{{ item.number }}</span>
+							<span class="fgw-item__title">{{ item.title }}</span>
+						</div>
+						<div class="fgw-item__meta">
+							<span class="fgw-item__repo">{{ item.repo_full_name }}</span>
+							<span v-if="item.comments" class="fgw-item__comments">💬 {{ item.comments }}</span>
+							<span class="fgw-item__updated">{{ formatUpdated(item.updated_at) }}</span>
+						</div>
+					</a>
+				</li>
+			</ul>
+			<a v-if="showMoreLink"
+				:href="showMoreLink"
+				target="_blank"
+				rel="noopener"
+				class="fgw-more">
+				{{ showMoreLabel }}
+				<OpenInNewIcon :size="14" />
+			</a>
+		</template>
 
 		<NcModal v-if="showSettings" size="normal" @close="closeSettings">
 			<div class="fgw-modal">
@@ -141,6 +151,9 @@ import NcSelect from '@nextcloud/vue/components/NcSelect'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
+import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
+
+const MAX_VISIBLE_ITEMS = 7
 
 const FILTERS = [
 	{ value: 'assigned', labelKey: 'Assigned to me' },
@@ -162,6 +175,7 @@ export default {
 		CogIcon,
 		RefreshIcon,
 		ContentSaveIcon,
+		OpenInNewIcon,
 	},
 	props: {
 		state: {
@@ -210,6 +224,23 @@ export default {
 			return this.state === 'open'
 				? t('integration_forgejo_gitea', 'Open Issues — settings')
 				: t('integration_forgejo_gitea', 'Closed Issues — settings')
+		},
+		visibleItems() {
+			return this.items.slice(0, MAX_VISIBLE_ITEMS)
+		},
+		showMoreLink() {
+			if (this.items.length <= MAX_VISIBLE_ITEMS || !this.instanceUrl) {
+				return null
+			}
+			if (this.config.repos.length === 1) {
+				return `${this.instanceUrl}/${this.config.repos[0]}/issues?state=${this.state}&type=issue`
+			}
+			return `${this.instanceUrl}/issues?state=${this.state}&type=your_repositories`
+		},
+		showMoreLabel() {
+			return t('integration_forgejo_gitea',
+				'Show all {n} on Forgejo',
+				{ n: this.items.length })
 		},
 	},
 	mounted() {
@@ -369,6 +400,21 @@ export default {
 
 .fgw-item__repo {
 	font-family: var(--font-face-monospace, monospace);
+}
+
+.fgw-more {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 8px;
+	margin-top: 4px;
+	color: var(--color-primary-element);
+	text-decoration: none;
+	font-size: 12px;
+
+	&:hover {
+		text-decoration: underline;
+	}
 }
 
 .fgw-modal {
