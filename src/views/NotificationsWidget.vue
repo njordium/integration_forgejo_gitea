@@ -267,12 +267,12 @@ export default {
 }
 
 .fgw-more {
-	display: flex;
+	display: inline-flex;
+	align-self: center;
 	align-items: center;
-	justify-content: center;
 	gap: 4px;
-	padding: 6px 8px;
-	margin: 4px 8px 0;
+	padding: 6px 12px;
+	margin: 4px 0 0;
 	color: var(--color-primary-element);
 	text-decoration: none;
 	font-size: 12px;
