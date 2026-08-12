@@ -53,11 +53,7 @@
 				target="_blank"
 				rel="noopener"
 				class="fgw-more">
-				{{ n('integration_forgejo_gitea',
-					'Show 1 more unread',
-					'Show {n} more unread',
-					hiddenCount,
-					{ n: hiddenCount }) }}
+				{{ t('integration_forgejo_gitea', 'Show all') }}
 				<OpenInNewIcon :size="14" />
 			</a>
 		</template>
@@ -84,7 +80,7 @@ import BellIcon from 'vue-material-design-icons/Bell.vue'
 import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
-const MAX_VISIBLE_ITEMS = 5
+const MAX_VISIBLE_ITEMS = 4
 
 export default {
 	name: 'NotificationsWidget',

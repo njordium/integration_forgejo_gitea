@@ -159,7 +159,7 @@ import Avatar from '../components/ItemAvatar.vue'
 import LabelChip from '../components/LabelChip.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
-const MAX_VISIBLE_ITEMS = 5
+const MAX_VISIBLE_ITEMS = 4
 
 const FILTERS = [
 	{ value: 'assigned', labelKey: 'Assigned to me' },
@@ -268,9 +268,7 @@ export default {
 			return `${this.instanceUrl}/issues?state=${this.state}&type=your_repositories`
 		},
 		showMoreLabel() {
-			return t('integration_forgejo_gitea',
-				'Show all {n}',
-				{ n: this.items.length })
+			return t('integration_forgejo_gitea', 'Show all')
 		},
 	},
 	mounted() {
