@@ -193,6 +193,12 @@ class ForgejoGiteaAPIController extends Controller {
 			$total += $count;
 		}
 
+		$windowRaw = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'heatmap_window_weeks', '13');
+		$window = (int) $windowRaw;
+		if (!in_array($window, [13, 26], true)) {
+			$window = 13;
+		}
+
 		return new DataResponse([
 			'points' => $points,
 			'total' => $total,
@@ -200,6 +206,7 @@ class ForgejoGiteaAPIController extends Controller {
 			'instance_url' => $instanceUrl,
 			'instance_type' => $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo'),
 			'refresh_interval_seconds' => $this->readRefreshInterval('heatmap'),
+			'window_weeks' => $window,
 		]);
 	}
 

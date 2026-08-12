@@ -17,6 +17,16 @@
 			<div class="fgw-modal">
 				<h3>{{ t('integration_forgejo_gitea', 'Activity heatmap — settings') }}</h3>
 				<section class="fgw-modal__section">
+					<h4>{{ t('integration_forgejo_gitea', 'Time window') }}</h4>
+					<NcSelect
+						:model-value="selectedWindow"
+						:options="windowOptions"
+						:clearable="false"
+						:searchable="false"
+						label="label"
+						@update:model-value="onWindowChange" />
+				</section>
+				<section class="fgw-modal__section">
 					<h4>{{ t('integration_forgejo_gitea', 'Refresh frequency') }}</h4>
 					<RefreshIntervalPicker v-model="draftRefreshSeconds" />
 				</section>
@@ -130,6 +140,7 @@ import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
@@ -138,15 +149,18 @@ import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
-const CELL_SIZE = 26
-const CELL_GAP = 4
 const GRID_LEFT = 32
 const GRID_TOP = 18
-const WEEKS = 13  // ~3 months so cells stay large and readable in the dashboard card
+// Larger cells for 13-week (3-month) window, smaller for 26-week (6-month)
+// so the SVG doesn't need to become absurdly wide.
+const CELL_METRICS = {
+	13: { size: 26, gap: 4 },
+	26: { size: 14, gap: 3 },
+}
 
 export default {
 	name: 'HeatmapWidget',
-	components: { NcActions, NcActionButton, NcButton, NcLoadingIcon, NcModal, RefreshIcon, CogIcon, ContentSaveIcon, RefreshIntervalPicker, OpenInNewIcon },
+	components: { NcActions, NcActionButton, NcButton, NcLoadingIcon, NcModal, NcSelect, RefreshIcon, CogIcon, ContentSaveIcon, RefreshIntervalPicker, OpenInNewIcon },
 	setup() {
 		const bridge = { fetchLater: () => null }
 		useAutoRefresh(() => bridge.fetchLater())
@@ -154,7 +168,6 @@ export default {
 	},
 	data() {
 		return {
-			CELL_SIZE,
 			loading: true,
 			error: '',
 			notConnected: false,
@@ -166,15 +179,32 @@ export default {
 			showSettings: false,
 			draftRefreshSeconds: 300,
 			refreshIntervalSeconds: 300,
+			windowWeeks: 13,
+			draftWindowWeeks: 13,
 			saving: false,
 		}
 	},
 	computed: {
+		cellMetrics() {
+			return CELL_METRICS[this.windowWeeks] || CELL_METRICS[13]
+		},
+		CELL_SIZE() {
+			return this.cellMetrics.size
+		},
 		SVG_WIDTH() {
-			return GRID_LEFT + WEEKS * (CELL_SIZE + CELL_GAP) + 4
+			return GRID_LEFT + this.windowWeeks * (this.cellMetrics.size + this.cellMetrics.gap) + 4
 		},
 		SVG_HEIGHT() {
-			return GRID_TOP + 7 * (CELL_SIZE + CELL_GAP) + 4
+			return GRID_TOP + 7 * (this.cellMetrics.size + this.cellMetrics.gap) + 4
+		},
+		windowOptions() {
+			return [
+				{ value: 13, label: t('integration_forgejo_gitea', 'Last 3 months') },
+				{ value: 26, label: t('integration_forgejo_gitea', 'Last 6 months') },
+			]
+		},
+		selectedWindow() {
+			return this.windowOptions.find(o => o.value === this.draftWindowWeeks) || this.windowOptions[0]
 		},
 		pointsByDay() {
 			const map = new Map()
@@ -187,7 +217,9 @@ export default {
 		cells() {
 			const cells = []
 			const end = moment().startOf('day')
-			const totalDays = WEEKS * 7
+			const totalDays = this.windowWeeks * 7
+			const size = this.cellMetrics.size
+			const gap = this.cellMetrics.gap
 			for (let i = totalDays - 1; i >= 0; i--) {
 				const day = end.clone().subtract(i, 'days')
 				const dayIndex = totalDays - 1 - i
@@ -196,8 +228,8 @@ export default {
 				const count = this.pointsByDay.get(day.unix()) || 0
 				cells.push({
 					key: day.unix(),
-					x: GRID_LEFT + col * (CELL_SIZE + CELL_GAP),
-					y: GRID_TOP + row * (CELL_SIZE + CELL_GAP),
+					x: GRID_LEFT + col * (size + gap),
+					y: GRID_TOP + row * (size + gap),
 					level: this.levelFor(count),
 					tooltip: `${day.format('LL')}: ${count} contribution${count === 1 ? '' : 's'}`,
 					count,
@@ -220,10 +252,12 @@ export default {
 			return labels
 		},
 		weekdayLabels() {
+			const size = this.cellMetrics.size
+			const gap = this.cellMetrics.gap
 			return [
-				{ day: 1, y: GRID_TOP + 1 * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 2, text: t('integration_forgejo_gitea', 'Mon') },
-				{ day: 3, y: GRID_TOP + 3 * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 2, text: t('integration_forgejo_gitea', 'Wed') },
-				{ day: 5, y: GRID_TOP + 5 * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 2, text: t('integration_forgejo_gitea', 'Fri') },
+				{ day: 1, y: GRID_TOP + 1 * (size + gap) + size - 2, text: t('integration_forgejo_gitea', 'Mon') },
+				{ day: 3, y: GRID_TOP + 3 * (size + gap) + size - 2, text: t('integration_forgejo_gitea', 'Wed') },
+				{ day: 5, y: GRID_TOP + 5 * (size + gap) + size - 2, text: t('integration_forgejo_gitea', 'Fri') },
 			]
 		},
 		contribsThisWeek() {
@@ -304,6 +338,10 @@ export default {
 					this.refreshIntervalSeconds = newInterval
 					this.autoRefresh.setIntervalMs(newInterval * 1000)
 				}
+				const newWindow = Number(response.data.window_weeks ?? 13)
+				if ([13, 26].includes(newWindow)) {
+					this.windowWeeks = newWindow
+				}
 			} catch (e) {
 				if (e?.response?.status === 401) {
 					this.notConnected = true
@@ -323,16 +361,25 @@ export default {
 		},
 		openSettings() {
 			this.draftRefreshSeconds = this.refreshIntervalSeconds
+			this.draftWindowWeeks = this.windowWeeks
 			this.showSettings = true
 		},
 		closeSettings() {
 			this.showSettings = false
 		},
+		onWindowChange(v) {
+			if (v && typeof v === 'object' && 'value' in v) {
+				this.draftWindowWeeks = v.value
+			}
+		},
 		async saveSettings() {
 			this.saving = true
 			try {
 				await axios.put(generateUrl('/apps/integration_forgejo_gitea/config'), {
-					values: { heatmap_refresh_seconds: String(this.draftRefreshSeconds) },
+					values: {
+						heatmap_refresh_seconds: String(this.draftRefreshSeconds),
+						heatmap_window_weeks: String(this.draftWindowWeeks),
+					},
 				})
 				this.showSettings = false
 				showSuccess(t('integration_forgejo_gitea', 'Widget settings saved.'))
