@@ -10,18 +10,21 @@
 			{{ error }}
 		</div>
 		<div v-else class="fgw-heatmap__body" :data-brand="instanceType">
-			<svg :viewBox="`0 0 ${width} ${height}`" preserveAspectRatio="xMidYMid meet" class="fgw-heatmap__svg">
-				<g v-for="(label, i) in monthLabels" :key="'m' + i">
+			<svg
+				:viewBox="`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`"
+				preserveAspectRatio="xMidYMid meet"
+				class="fgw-heatmap__svg">
+				<g v-for="label in monthLabels" :key="'m' + label.key">
 					<text
 						:x="label.x"
-						:y="MONTH_LABEL_Y"
+						y="10"
 						class="fgw-heatmap__month-label">
 						{{ label.text }}
 					</text>
 				</g>
 				<g v-for="label in weekdayLabels" :key="'d' + label.day">
 					<text
-						:x="WEEKDAY_LABEL_X"
+						x="0"
 						:y="label.y"
 						class="fgw-heatmap__day-label">
 						{{ label.text }}
@@ -40,16 +43,42 @@
 					</rect>
 				</g>
 			</svg>
-			<div class="fgw-heatmap__footer">
-				<span>{{ n('integration_forgejo_gitea',
-					'{n} contribution in the last 12 months',
-					'{n} contributions in the last 12 months',
-					total, { n: total }) }}</span>
-				<div class="fgw-heatmap__legend">
-					<span class="fgw-heatmap__legend-label">{{ t('integration_forgejo_gitea', 'Less') }}</span>
-					<span v-for="lvl in [0, 1, 2, 3, 4]" :key="lvl" :class="['fgw-heatmap__legend-cell', 'fgw-cell', 'fgw-cell--level-' + lvl]"></span>
-					<span class="fgw-heatmap__legend-label">{{ t('integration_forgejo_gitea', 'More') }}</span>
+
+			<div class="fgw-stats-grid">
+				<div class="fgw-stat">
+					<div class="fgw-stat__value">{{ total }}</div>
+					<div class="fgw-stat__label">{{ t('integration_forgejo_gitea', 'Total 12 months') }}</div>
 				</div>
+				<div class="fgw-stat">
+					<div class="fgw-stat__value">{{ contribsThisWeek }}</div>
+					<div class="fgw-stat__label">{{ t('integration_forgejo_gitea', 'This week') }}</div>
+				</div>
+				<div class="fgw-stat">
+					<div class="fgw-stat__value">{{ contribsThisMonth }}</div>
+					<div class="fgw-stat__label">{{ t('integration_forgejo_gitea', 'This month') }}</div>
+				</div>
+				<div class="fgw-stat">
+					<div class="fgw-stat__value">{{ currentStreak }}</div>
+					<div class="fgw-stat__label">{{ t('integration_forgejo_gitea', 'Current streak (days)') }}</div>
+				</div>
+				<div class="fgw-stat">
+					<div class="fgw-stat__value">{{ longestStreak }}</div>
+					<div class="fgw-stat__label">{{ t('integration_forgejo_gitea', 'Longest streak') }}</div>
+				</div>
+				<div class="fgw-stat">
+					<div class="fgw-stat__value">{{ bestDay.count }}</div>
+					<div class="fgw-stat__label">
+						{{ bestDay.count > 0
+							? t('integration_forgejo_gitea', 'Best day ({date})', { date: bestDay.date })
+							: t('integration_forgejo_gitea', 'Best day') }}
+					</div>
+				</div>
+			</div>
+
+			<div class="fgw-legend">
+				<span class="fgw-legend__label">{{ t('integration_forgejo_gitea', 'Less') }}</span>
+				<span v-for="lvl in [0, 1, 2, 3, 4]" :key="lvl" :class="['fgw-legend__cell', 'fgw-cell', 'fgw-cell--level-' + lvl]"></span>
+				<span class="fgw-legend__label">{{ t('integration_forgejo_gitea', 'More') }}</span>
 			</div>
 		</div>
 	</div>
@@ -62,13 +91,11 @@ import moment from '@nextcloud/moment'
 
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 
-const CELL_SIZE = 10
-const CELL_GAP = 2
-const WEEKS = 53
-const MONTH_LABEL_Y = 10
-const WEEKDAY_LABEL_X = 0
-const GRID_LEFT = 24
-const GRID_TOP = 18
+const CELL_SIZE = 12
+const CELL_GAP = 3
+const GRID_LEFT = 28
+const GRID_TOP = 16
+const WEEKS = 26  // ~6 months, sized so cells stay readable in the dashboard card
 
 export default {
 	name: 'HeatmapWidget',
@@ -76,8 +103,6 @@ export default {
 	data() {
 		return {
 			CELL_SIZE,
-			MONTH_LABEL_Y,
-			WEEKDAY_LABEL_X,
 			loading: true,
 			error: '',
 			notConnected: false,
@@ -89,11 +114,11 @@ export default {
 		}
 	},
 	computed: {
-		width() {
+		SVG_WIDTH() {
 			return GRID_LEFT + WEEKS * (CELL_SIZE + CELL_GAP) + 4
 		},
-		height() {
-			return GRID_TOP + 7 * (CELL_SIZE + CELL_GAP)
+		SVG_HEIGHT() {
+			return GRID_TOP + 7 * (CELL_SIZE + CELL_GAP) + 4
 		},
 		pointsByDay() {
 			const map = new Map()
@@ -111,21 +136,21 @@ export default {
 				const day = end.clone().subtract(i, 'days')
 				const dayIndex = totalDays - 1 - i
 				const col = Math.floor(dayIndex / 7)
-				const row = day.day() // 0 (Sun) .. 6 (Sat)
+				const row = day.day()
 				const count = this.pointsByDay.get(day.unix()) || 0
-				const level = this.levelFor(count)
 				cells.push({
 					key: day.unix(),
 					x: GRID_LEFT + col * (CELL_SIZE + CELL_GAP),
 					y: GRID_TOP + row * (CELL_SIZE + CELL_GAP),
-					level,
+					level: this.levelFor(count),
 					tooltip: `${day.format('LL')}: ${count} contribution${count === 1 ? '' : 's'}`,
+					count,
+					day: day.clone(),
 				})
 			}
 			return cells
 		},
 		monthLabels() {
-			// pick unique months from cells at row 0
 			const seen = new Set()
 			const labels = []
 			for (const c of this.cells.filter(c => c.y === GRID_TOP)) {
@@ -133,17 +158,69 @@ export default {
 				const monthKey = date.format('YYYY-MM')
 				if (!seen.has(monthKey)) {
 					seen.add(monthKey)
-					labels.push({ x: c.x, text: date.format('MMM') })
+					labels.push({ key: monthKey, x: c.x, text: date.format('MMM') })
 				}
 			}
 			return labels
 		},
 		weekdayLabels() {
 			return [
-				{ day: 1, y: GRID_TOP + 1 * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 1, text: t('integration_forgejo_gitea', 'Mon') },
-				{ day: 3, y: GRID_TOP + 3 * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 1, text: t('integration_forgejo_gitea', 'Wed') },
-				{ day: 5, y: GRID_TOP + 5 * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 1, text: t('integration_forgejo_gitea', 'Fri') },
+				{ day: 1, y: GRID_TOP + 1 * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 2, text: t('integration_forgejo_gitea', 'Mon') },
+				{ day: 3, y: GRID_TOP + 3 * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 2, text: t('integration_forgejo_gitea', 'Wed') },
+				{ day: 5, y: GRID_TOP + 5 * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 2, text: t('integration_forgejo_gitea', 'Fri') },
 			]
+		},
+		contribsThisWeek() {
+			const weekStart = moment().startOf('isoWeek').unix()
+			let sum = 0
+			for (const [ts, count] of this.pointsByDay) {
+				if (ts >= weekStart) sum += count
+			}
+			return sum
+		},
+		contribsThisMonth() {
+			const monthStart = moment().startOf('month').unix()
+			let sum = 0
+			for (const [ts, count] of this.pointsByDay) {
+				if (ts >= monthStart) sum += count
+			}
+			return sum
+		},
+		currentStreak() {
+			let streak = 0
+			let day = moment().startOf('day')
+			while ((this.pointsByDay.get(day.unix()) || 0) > 0) {
+				streak++
+				day = day.subtract(1, 'day')
+			}
+			return streak
+		},
+		longestStreak() {
+			const sortedDays = Array.from(this.pointsByDay.keys()).sort((a, b) => a - b)
+			let longest = 0
+			let current = 0
+			let prev = null
+			for (const d of sortedDays) {
+				if ((this.pointsByDay.get(d) || 0) <= 0) continue
+				if (prev === null || d - prev === 86400) {
+					current++
+				} else {
+					current = 1
+				}
+				if (current > longest) longest = current
+				prev = d
+			}
+			return longest
+		},
+		bestDay() {
+			let best = { count: 0, ts: 0 }
+			for (const [ts, count] of this.pointsByDay) {
+				if (count > best.count) best = { count, ts }
+			}
+			return {
+				count: best.count,
+				date: best.ts ? moment.unix(best.ts).format('MMM D') : '—',
+			}
 		},
 	},
 	mounted() {
@@ -196,14 +273,13 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
-.fgw-error {
-	color: var(--color-error);
-}
+.fgw-error { color: var(--color-error); }
 
 .fgw-heatmap__svg {
 	width: 100%;
 	height: auto;
 	display: block;
+	margin-bottom: 12px;
 }
 
 .fgw-heatmap__month-label,
@@ -226,7 +302,6 @@ body.theme--dark .fgw-cell {
 	&--level-0 { fill: var(--color-background-dark, #22262e); }
 }
 
-/* Gitea green scale */
 .fgw-heatmap__body[data-brand="gitea"] .fgw-cell {
 	&--level-1 { fill: #c6e9c1; }
 	&--level-2 { fill: #7fc47a; }
@@ -234,31 +309,56 @@ body.theme--dark .fgw-cell {
 	&--level-4 { fill: #2c6a25; }
 }
 
-.fgw-heatmap__footer {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-top: 6px;
-	font-size: 11px;
-	color: var(--color-text-maxcontrast);
-	flex-wrap: wrap;
+.fgw-stats-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
 	gap: 8px;
+	margin-bottom: 12px;
 }
 
-.fgw-heatmap__legend {
-	display: inline-flex;
+.fgw-stat {
+	display: flex;
+	flex-direction: column;
 	align-items: center;
-	gap: 3px;
+	justify-content: center;
+	padding: 8px 4px;
+	background: var(--color-background-hover);
+	border-radius: var(--border-radius);
 }
 
-.fgw-heatmap__legend-cell {
+.fgw-stat__value {
+	font-size: 18px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	color: #F87A50;
+}
+
+.fgw-heatmap__body[data-brand="gitea"] .fgw-stat__value {
+	color: #609926;
+}
+
+.fgw-stat__label {
+	margin-top: 4px;
+	font-size: 10px;
+	text-align: center;
+	color: var(--color-text-maxcontrast);
+	line-height: 1.15;
+}
+
+.fgw-legend {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 3px;
+	font-size: 10px;
+	color: var(--color-text-maxcontrast);
+}
+
+.fgw-legend__cell {
 	display: inline-block;
 	width: 10px;
 	height: 10px;
 	border-radius: 2px;
-}
-
-.fgw-heatmap__legend-label {
-	font-size: 10px;
 }
 </style>

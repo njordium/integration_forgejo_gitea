@@ -54,6 +54,9 @@ class ForgejoGiteaAPIService {
 					'User-Agent' => 'Nextcloud Forgejo/Gitea integration',
 				],
 				'timeout' => 30,
+				// Handle 4xx/5xx ourselves rather than have Guzzle throw — otherwise
+				// the 401 → refresh path below is dead.
+				'http_errors' => false,
 			];
 
 			if ($method === 'GET') {
@@ -137,6 +140,7 @@ class ForgejoGiteaAPIService {
 					'User-Agent' => 'Nextcloud Forgejo/Gitea integration',
 				],
 				'timeout' => 30,
+				'http_errors' => false,
 			]);
 			$body = (string) $response->getBody();
 			$decoded = json_decode($body, true);
