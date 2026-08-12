@@ -76,6 +76,16 @@
 				</g>
 			</svg>
 
+			<a
+				v-if="fullHeatmapUrl"
+				:href="fullHeatmapUrl"
+				target="_blank"
+				rel="noopener"
+				class="fgw-full-link">
+				{{ t('integration_forgejo_gitea', 'Show all on Forgejo') }}
+				<OpenInNewIcon :size="14" />
+			</a>
+
 			<div class="fgw-stats-grid">
 				<div class="fgw-stat">
 					<div class="fgw-stat__value">{{ total }}</div>
@@ -124,6 +134,7 @@ import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
 import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
+import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
@@ -135,7 +146,7 @@ const WEEKS = 13  // ~3 months so cells stay large and readable in the dashboard
 
 export default {
 	name: 'HeatmapWidget',
-	components: { NcActions, NcActionButton, NcButton, NcLoadingIcon, NcModal, RefreshIcon, CogIcon, ContentSaveIcon, RefreshIntervalPicker },
+	components: { NcActions, NcActionButton, NcButton, NcLoadingIcon, NcModal, RefreshIcon, CogIcon, ContentSaveIcon, RefreshIntervalPicker, OpenInNewIcon },
 	setup() {
 		const bridge = { fetchLater: () => null }
 		useAutoRefresh(() => bridge.fetchLater())
@@ -256,6 +267,10 @@ export default {
 				prev = d
 			}
 			return longest
+		},
+		fullHeatmapUrl() {
+			if (!this.instanceUrl || !this.userName) return null
+			return `${this.instanceUrl}/${encodeURIComponent(this.userName)}`
 		},
 		bestDay() {
 			let best = { count: 0, ts: 0 }
@@ -442,6 +457,24 @@ body.theme--dark .fgw-stat__value {
 
 body.theme--dark .fgw-heatmap__body[data-brand="gitea"] .fgw-stat__value {
 	color: #a5e19f;
+}
+
+.fgw-full-link {
+	display: inline-flex;
+	align-self: center;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 12px;
+	margin: 0 0 8px;
+	color: var(--color-primary-element);
+	text-decoration: none;
+	font-size: 12px;
+	border-radius: var(--border-radius);
+
+	&:hover {
+		text-decoration: underline;
+		background: var(--color-background-hover);
+	}
 }
 
 .fgw-modal {

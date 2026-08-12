@@ -50,7 +50,7 @@ class ClosedIssuesWidget implements IWidget {
 	}
 
 	public function load(): void {
-		Util::addScript(Application::APP_ID, Application::APP_ID . '-dashboardClosed');
+		Util::addScript(Application::APP_ID, Application::APP_ID . '-dashboard');
 		Util::addStyle(Application::APP_ID, 'dashboard');
 	}
 }
