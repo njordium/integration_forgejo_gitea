@@ -305,7 +305,11 @@ export default {
 		},
 		fullHeatmapUrl() {
 			if (!this.instanceUrl || !this.userName) return null
-			return `${this.instanceUrl}/${encodeURIComponent(this.userName)}`
+			// Forgejo/Gitea render the 12-month contribution heatmap on the
+			// user profile's Public-activity tab, not on the default
+			// Repositories tab. Accounts without personal repos land on an
+			// empty Repositories tab otherwise.
+			return `${this.instanceUrl}/${encodeURIComponent(this.userName)}?tab=activity`
 		},
 		bestDay() {
 			let best = { count: 0, ts: 0 }
