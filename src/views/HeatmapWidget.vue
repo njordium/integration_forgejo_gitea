@@ -127,11 +127,11 @@ import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
-const CELL_SIZE = 12
-const CELL_GAP = 3
-const GRID_LEFT = 28
-const GRID_TOP = 16
-const WEEKS = 26  // ~6 months, sized so cells stay readable in the dashboard card
+const CELL_SIZE = 26
+const CELL_GAP = 4
+const GRID_LEFT = 32
+const GRID_TOP = 18
+const WEEKS = 13  // ~3 months so cells stay large and readable in the dashboard card
 
 export default {
 	name: 'HeatmapWidget',
@@ -372,7 +372,7 @@ export default {
 .fgw-heatmap__month-label,
 .fgw-heatmap__day-label {
 	fill: var(--color-text-maxcontrast);
-	font-size: 9px;
+	font-size: 11px;
 }
 
 .fgw-cell {
