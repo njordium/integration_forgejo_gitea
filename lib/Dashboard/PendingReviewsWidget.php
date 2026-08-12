@@ -27,8 +27,8 @@ class PendingReviewsWidget implements IWidget {
 	public function getTitle(): string {
 		$type = $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo');
 		return $type === 'gitea'
-			? $this->l10n->t('Gitea — Pending reviews')
-			: $this->l10n->t('Forgejo — Pending reviews');
+			? $this->l10n->t('Gitea: Pending reviews')
+			: $this->l10n->t('Forgejo: Pending reviews');
 	}
 
 	public function getOrder(): int {

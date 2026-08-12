@@ -159,7 +159,7 @@ import Avatar from '../components/ItemAvatar.vue'
 import LabelChip from '../components/LabelChip.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
-const MAX_VISIBLE_ITEMS = 7
+const MAX_VISIBLE_ITEMS = 5
 
 const FILTERS = [
 	{ value: 'assigned', labelKey: 'Assigned to me' },
@@ -352,21 +352,22 @@ export default {
 
 <style scoped lang="scss">
 .fgw-widget {
-	position: relative;
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
-	padding: 12px 0 4px;
+	gap: 4px;
+	padding: 4px 0;
 	font-size: 13px;
 	max-height: 480px;
 	overflow: hidden;
 }
 
 .fgw-toolbar {
-	position: absolute;
-	top: -32px;
-	right: 4px;
-	z-index: 10;
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	min-height: 32px;
+	margin-top: -8px;
+	margin-bottom: -4px;
 }
 
 .fgw-status {

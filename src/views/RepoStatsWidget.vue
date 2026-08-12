@@ -188,10 +188,13 @@ export default {
 
 <style scoped lang="scss">
 .fgw-widget {
-	position: relative; display: flex; flex-direction: column; gap: 8px;
-	padding: 12px 0 4px; font-size: 13px; max-height: 480px; overflow: hidden;
+	display: flex; flex-direction: column; gap: 6px;
+	padding: 4px 0; font-size: 13px; max-height: 480px; overflow: hidden;
 }
-.fgw-toolbar { position: absolute; top: -32px; right: 4px; z-index: 10; }
+.fgw-toolbar {
+	display: flex; justify-content: flex-end; align-items: center;
+	min-height: 32px; margin-top: -8px; margin-bottom: -4px;
+}
 .fgw-status { display: flex; align-items: center; gap: 8px; padding: 12px 4px; color: var(--color-text-maxcontrast); flex-wrap: wrap; }
 .fgw-error { color: var(--color-error); }
 .fgw-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }

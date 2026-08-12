@@ -32,8 +32,8 @@ class HeatmapWidget implements IWidget {
 	public function getTitle(): string {
 		$type = $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo');
 		return $type === 'gitea'
-			? $this->l10n->t('Gitea — Activity heatmap')
-			: $this->l10n->t('Forgejo — Activity heatmap');
+			? $this->l10n->t('Gitea: Activity heatmap')
+			: $this->l10n->t('Forgejo: Activity heatmap');
 	}
 
 	public function getOrder(): int {

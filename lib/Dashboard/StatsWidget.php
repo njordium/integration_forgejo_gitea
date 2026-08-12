@@ -32,8 +32,8 @@ class StatsWidget implements IWidget {
 	public function getTitle(): string {
 		$type = $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo');
 		return $type === 'gitea'
-			? $this->l10n->t('Gitea — Overview')
-			: $this->l10n->t('Forgejo — Overview');
+			? $this->l10n->t('Gitea: Overview')
+			: $this->l10n->t('Forgejo: Overview');
 	}
 
 	public function getOrder(): int {

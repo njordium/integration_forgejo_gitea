@@ -1,6 +1,6 @@
 <template>
 	<span class="fgw-avatar" :title="login">
-		<img v-if="url" :src="url" :alt="login" class="fgw-avatar__img" />
+		<img v-if="url && !failed" :src="url" :alt="login" class="fgw-avatar__img" @error="failed = true" />
 		<span v-else class="fgw-avatar__initial">{{ initial }}</span>
 	</span>
 </template>
@@ -12,10 +12,16 @@ export default {
 		url: { type: String, default: '' },
 		login: { type: String, default: '' },
 	},
+	data() {
+		return { failed: false }
+	},
 	computed: {
 		initial() {
 			return (this.login || '?').substring(0, 1).toUpperCase()
 		},
+	},
+	watch: {
+		url() { this.failed = false },
 	},
 }
 </script>
@@ -39,6 +45,7 @@ export default {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
+	display: block;
 }
 .fgw-avatar__initial {
 	line-height: 1;

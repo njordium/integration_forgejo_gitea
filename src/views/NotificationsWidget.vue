@@ -84,7 +84,7 @@ import BellIcon from 'vue-material-design-icons/Bell.vue'
 import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
-const MAX_VISIBLE_ITEMS = 7
+const MAX_VISIBLE_ITEMS = 5
 
 export default {
 	name: 'NotificationsWidget',
@@ -177,18 +177,22 @@ export default {
 
 <style scoped lang="scss">
 .fgw-notifications {
-	position: relative;
-	padding: 12px 0 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 4px 0;
 	font-size: 13px;
 	max-height: 480px;
 	overflow: hidden;
 }
 
 .fgw-toolbar {
-	position: absolute;
-	top: -32px;
-	right: 4px;
-	z-index: 10;
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	min-height: 32px;
+	margin-top: -8px;
+	margin-bottom: -4px;
 }
 
 .fgw-status {
