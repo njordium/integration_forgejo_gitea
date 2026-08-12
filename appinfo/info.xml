@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<info>
+	<id>integration_forgejo_gitea</id>
+	<name>Forgejo / Gitea integration</name>
+	<summary>Dashboard widgets and search for Forgejo and Gitea issues</summary>
+	<description><![CDATA[Integration with Forgejo and Gitea instances. Provides two dashboard widgets — Open Issues and Closed Issues — each with per-widget repository selection and filter (assigned / created / mentioned / all). Later releases add unified search, link previews and notifications.]]></description>
+	<version>0.0.1</version>
+	<licence>agpl</licence>
+	<author>Njordium</author>
+	<namespace>ForgejoGitea</namespace>
+	<documentation>
+		<developer>https://github.com/njordium/integration_forgejo_gitea</developer>
+	</documentation>
+	<category>integration</category>
+	<category>dashboard</category>
+	<website>https://github.com/njordium/integration_forgejo_gitea</website>
+	<bugs>https://github.com/njordium/integration_forgejo_gitea/issues</bugs>
+	<screenshot>https://raw.githubusercontent.com/njordium/integration_forgejo_gitea/main/img/screenshot1.png</screenshot>
+	<dependencies>
+		<nextcloud min-version="30" max-version="34"/>
+	</dependencies>
+	<settings>
+		<admin>OCA\ForgejoGitea\Settings\Admin</admin>
+		<admin-section>OCA\ForgejoGitea\Settings\AdminSection</admin-section>
+		<personal>OCA\ForgejoGitea\Settings\Personal</personal>
+		<personal-section>OCA\ForgejoGitea\Settings\PersonalSection</personal-section>
+	</settings>
+</info>

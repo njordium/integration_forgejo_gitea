@@ -1,0 +1,20 @@
+const path = require('path')
+const webpackConfig = require('@nextcloud/webpack-vue-config')
+
+const buildMode = process.env.NODE_ENV
+const isDev = buildMode === 'development'
+webpackConfig.devtool = isDev ? 'cheap-source-map' : 'source-map'
+
+webpackConfig.stats = {
+    colors: true,
+    modules: false,
+}
+
+webpackConfig.entry = {
+    personalSettings: { import: path.join(__dirname, 'src', 'personalSettings.js'), filename: 'integration_forgejo_gitea-personalSettings.js' },
+    adminSettings: { import: path.join(__dirname, 'src', 'adminSettings.js'), filename: 'integration_forgejo_gitea-adminSettings.js' },
+    dashboardOpen: { import: path.join(__dirname, 'src', 'dashboardOpen.js'), filename: 'integration_forgejo_gitea-dashboardOpen.js' },
+    dashboardClosed: { import: path.join(__dirname, 'src', 'dashboardClosed.js'), filename: 'integration_forgejo_gitea-dashboardClosed.js' },
+}
+
+module.exports = webpackConfig

@@ -1,0 +1,9 @@
+parameters:
+  level: 5
+  paths:
+    - lib
+  excludePaths:
+    - lib/AppInfo/Application.php
+  ignoreErrors:
+    # ForgejoGitea v8 REST responses are dynamic JSON, so we accept typed arrays.
+    - '#Cannot access offset .* on array\|string#'

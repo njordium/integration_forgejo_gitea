@@ -1,0 +1,7 @@
+.icon-forgejo_gitea {
+    background-image: url(./../img/app-dark.svg);
+}
+
+body.theme--dark .icon-forgejo_gitea {
+    background-image: url(./../img/app.svg);
+}
