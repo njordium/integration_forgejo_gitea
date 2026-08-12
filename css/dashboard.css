@@ -1,7 +1,30 @@
+/*
+ * App icon classes — pick brand SVG by suffix (-forgejo | -gitea).
+ * The unsuffixed .icon-forgejo_gitea falls through to the neutral app icon
+ * so the settings section renders even before an instance type is chosen.
+ */
+
 .icon-forgejo_gitea {
-    background-image: url(./../img/app-dark.svg);
+	background-image: url('./../img/app.svg');
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
 }
 
 body.theme--dark .icon-forgejo_gitea {
-    background-image: url(./../img/app.svg);
+	background-image: url('./../img/app-dark.svg');
+}
+
+.icon-forgejo_gitea-forgejo {
+	background-image: url('./../img/forgejo.svg');
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+.icon-forgejo_gitea-gitea {
+	background-image: url('./../img/gitea.svg');
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
 }

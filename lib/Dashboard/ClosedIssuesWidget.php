@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace OCA\ForgejoGitea\Dashboard;
 
 use OCP\Dashboard\IWidget;
+use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\Util;
@@ -20,6 +21,7 @@ class ClosedIssuesWidget implements IWidget {
 	public function __construct(
 		private IL10N $l10n,
 		private IURLGenerator $url,
+		private IConfig $config,
 	) {
 	}
 
@@ -28,7 +30,7 @@ class ClosedIssuesWidget implements IWidget {
 	}
 
 	public function getTitle(): string {
-		return $this->l10n->t('Forgejo/Gitea — Closed Issues');
+		return $this->l10n->t('Forgejo / Gitea — Closed Issues');
 	}
 
 	public function getOrder(): int {
@@ -36,7 +38,8 @@ class ClosedIssuesWidget implements IWidget {
 	}
 
 	public function getIconClass(): string {
-		return 'icon-forgejo_gitea';
+		$type = $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo');
+		return 'icon-forgejo_gitea-' . ($type === 'gitea' ? 'gitea' : 'forgejo');
 	}
 
 	public function getUrl(): ?string {
