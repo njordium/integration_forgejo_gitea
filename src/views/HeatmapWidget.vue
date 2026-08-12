@@ -1,5 +1,13 @@
 <template>
 	<div class="fgw-heatmap">
+		<div class="fgw-toolbar">
+			<NcActions :force-menu="true">
+				<NcActionButton @click="fetch">
+					<template #icon><RefreshIcon :size="20" /></template>
+					{{ t('integration_forgejo_gitea', 'Refresh') }}
+				</NcActionButton>
+			</NcActions>
+		</div>
 		<div v-if="loading" class="fgw-status">
 			<NcLoadingIcon :size="24" />
 		</div>
@@ -83,7 +91,10 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import moment from '@nextcloud/moment'
 
+import NcActions from '@nextcloud/vue/components/NcActions'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
 const CELL_SIZE = 12
@@ -94,7 +105,7 @@ const WEEKS = 26  // ~6 months, sized so cells stay readable in the dashboard ca
 
 export default {
 	name: 'HeatmapWidget',
-	components: { NcLoadingIcon },
+	components: { NcActions, NcActionButton, NcLoadingIcon, RefreshIcon },
 	setup() {
 		const bridge = { fetchLater: () => null }
 		useAutoRefresh(() => bridge.fetchLater())
@@ -262,10 +273,22 @@ export default {
 
 <style scoped lang="scss">
 .fgw-heatmap {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 	padding: 4px 0;
 	font-size: 13px;
 	max-height: 480px;
 	overflow: hidden;
+}
+
+.fgw-toolbar {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	min-height: 32px;
+	margin-top: -8px;
+	margin-bottom: -4px;
 }
 
 .fgw-status {
