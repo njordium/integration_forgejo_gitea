@@ -263,6 +263,8 @@ export default {
 .fgw-heatmap {
 	padding: 4px 0;
 	font-size: 13px;
+	max-height: 480px;
+	overflow: hidden;
 }
 
 .fgw-status {

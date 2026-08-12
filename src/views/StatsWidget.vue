@@ -110,6 +110,8 @@ export default {
 <style scoped lang="scss">
 .fgw-stats {
 	padding: 4px 0;
+	max-height: 480px;
+	overflow: hidden;
 }
 
 .fgw-status {
