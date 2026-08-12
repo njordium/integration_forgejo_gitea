@@ -23,29 +23,44 @@
 		<div v-else-if="!items.length" class="fgw-status">
 			{{ t('integration_forgejo_gitea', 'You are up to date — no unread notifications.') }}
 		</div>
-		<ul v-else class="fgw-list">
-			<li v-for="item in items" :key="item.id" class="fgw-item">
-				<a :href="item.html_url" target="_blank" rel="noopener" class="fgw-item__link">
-					<div class="fgw-item__row">
-						<component :is="iconFor(item.type)" :size="16" class="fgw-item__type-icon" />
-						<span class="fgw-item__title">{{ item.title || '(untitled)' }}</span>
-					</div>
-					<div class="fgw-item__meta">
-						<span class="fgw-item__repo">{{ item.repo_full_name }}</span>
-						<span class="fgw-item__updated">{{ formatUpdated(item.updated_at) }}</span>
-					</div>
-				</a>
-				<NcButton
-					variant="tertiary-no-background"
-					:aria-label="t('integration_forgejo_gitea', 'Mark as read')"
-					:title="t('integration_forgejo_gitea', 'Mark as read')"
-					@click="markRead(item)">
-					<template #icon>
-						<CheckIcon :size="16" />
-					</template>
-				</NcButton>
-			</li>
-		</ul>
+		<template v-else>
+			<ul class="fgw-list">
+				<li v-for="item in visibleItems" :key="item.id" class="fgw-item">
+					<a :href="item.html_url" target="_blank" rel="noopener" class="fgw-item__link">
+						<div class="fgw-item__row">
+							<component :is="iconFor(item.type)" :size="16" class="fgw-item__type-icon" />
+							<span class="fgw-item__title">{{ item.title || '(untitled)' }}</span>
+						</div>
+						<div class="fgw-item__meta">
+							<span class="fgw-item__repo">{{ item.repo_full_name }}</span>
+							<span class="fgw-item__updated">{{ formatUpdated(item.updated_at) }}</span>
+						</div>
+					</a>
+					<NcButton
+						variant="tertiary-no-background"
+						:aria-label="t('integration_forgejo_gitea', 'Mark as read')"
+						:title="t('integration_forgejo_gitea', 'Mark as read')"
+						@click="markRead(item)">
+						<template #icon>
+							<CheckIcon :size="16" />
+						</template>
+					</NcButton>
+				</li>
+			</ul>
+			<a
+				v-if="hiddenCount > 0 && notificationsUrl"
+				:href="notificationsUrl"
+				target="_blank"
+				rel="noopener"
+				class="fgw-more">
+				{{ n('integration_forgejo_gitea',
+					'Show 1 more unread',
+					'Show {n} more unread',
+					hiddenCount,
+					{ n: hiddenCount }) }}
+				<OpenInNewIcon :size="14" />
+			</a>
+		</template>
 	</div>
 </template>
 
@@ -66,6 +81,9 @@ import SourcePullIcon from 'vue-material-design-icons/SourcePull.vue'
 import SourceCommitIcon from 'vue-material-design-icons/SourceCommit.vue'
 import FolderIcon from 'vue-material-design-icons/Folder.vue'
 import BellIcon from 'vue-material-design-icons/Bell.vue'
+import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
+
+const MAX_VISIBLE_ITEMS = 7
 
 export default {
 	name: 'NotificationsWidget',
@@ -81,6 +99,7 @@ export default {
 		SourceCommitIcon,
 		FolderIcon,
 		BellIcon,
+		OpenInNewIcon,
 	},
 	data() {
 		return {
@@ -88,7 +107,19 @@ export default {
 			error: '',
 			notConnected: false,
 			items: [],
+			instanceUrl: '',
 		}
+	},
+	computed: {
+		visibleItems() {
+			return this.items.slice(0, MAX_VISIBLE_ITEMS)
+		},
+		hiddenCount() {
+			return Math.max(0, this.items.length - MAX_VISIBLE_ITEMS)
+		},
+		notificationsUrl() {
+			return this.instanceUrl ? `${this.instanceUrl}/notifications` : null
+		},
 	},
 	mounted() {
 		this.fetch()
@@ -101,6 +132,7 @@ export default {
 			try {
 				const response = await axios.get(generateUrl('/apps/integration_forgejo_gitea/notifications'))
 				this.items = response.data.items || []
+				this.instanceUrl = response.data.instance_url || ''
 			} catch (e) {
 				if (e?.response?.status === 401) {
 					this.notConnected = true
@@ -218,5 +250,20 @@ export default {
 
 .fgw-item__repo {
 	font-family: var(--font-face-monospace, monospace);
+}
+
+.fgw-more {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 8px;
+	margin-top: 4px;
+	color: var(--color-primary-element);
+	text-decoration: none;
+	font-size: 12px;
+
+	&:hover {
+		text-decoration: underline;
+	}
 }
 </style>
