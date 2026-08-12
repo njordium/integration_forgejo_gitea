@@ -106,7 +106,7 @@ export default {
 				{ label: 'Forgejo', value: 'forgejo' },
 				{ label: 'Gitea', value: 'gitea' },
 			],
-			redirectUri: window.location.origin + generateUrl('/apps/integration_forgejo_gitea/oauth-redirect'),
+			redirectUri: initial.redirect_uri ?? '',
 		}
 	},
 	computed: {

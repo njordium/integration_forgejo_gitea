@@ -1,18 +1,26 @@
 <?php
+declare(strict_types=1);
+
 /**
- * Nextcloud - ForgejoGitea integration
- *
- * Service skeleton — real Forgejo/Gitea REST v1 client lands in Checkpoint 2.
- *
+ * @copyright Copyright (c) 2026 Njordium
  * @license GNU AGPL version 3 or any later version
  */
 
 namespace OCA\ForgejoGitea\Service;
 
+use Exception;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
+use OCA\ForgejoGitea\AppInfo\Application;
+
+/**
+ * Thin HTTP wrapper for Forgejo & Gitea REST v1. Both expose identical
+ * OAuth 2 authorization-code + refresh-token grants at /login/oauth/access_token
+ * and identical API v1 endpoints under /api/v1/.
+ */
 class ForgejoGiteaAPIService {
 
 	public function __construct(
@@ -24,10 +32,124 @@ class ForgejoGiteaAPIService {
 	}
 
 	/**
-	 * OAuth token exchange (authorization-code + refresh grants).
-	 * Implemented in Checkpoint 2.
+	 * Bearer-authenticated call to the instance's /api/v1/ tree.
+	 * On 401 attempts a single refresh_token exchange and retries.
+	 *
+	 * @return array Decoded JSON or ['error' => string]
 	 */
-	public function requestOAuthAccessToken(string $url, array $params, string $method = 'POST'): array {
-		return ['error' => 'not_implemented'];
+	public function request(
+		string $instanceUrl,
+		string $accessToken,
+		string $userId,
+		string $endpoint,
+		array $params = [],
+		string $method = 'GET',
+	): array {
+		try {
+			$url = rtrim($instanceUrl, '/') . '/api/v1/' . ltrim($endpoint, '/');
+			$options = [
+				'headers' => [
+					'Authorization' => 'Bearer ' . $accessToken,
+					'Accept' => 'application/json',
+					'User-Agent' => 'Nextcloud Forgejo/Gitea integration',
+				],
+				'timeout' => 30,
+			];
+
+			if ($method === 'GET') {
+				if (!empty($params)) {
+					$url .= '?' . http_build_query($params);
+				}
+			} else {
+				$options['json'] = $params;
+			}
+
+			$client = $this->clientService->newClient();
+			$response = match ($method) {
+				'GET' => $client->get($url, $options),
+				'POST' => $client->post($url, $options),
+				'PUT' => $client->put($url, $options),
+				'DELETE' => $client->delete($url, $options),
+				default => throw new Exception('Unsupported method: ' . $method),
+			};
+
+			$status = $response->getStatusCode();
+			$body = (string) $response->getBody();
+
+			if ($status === 401 && $userId !== '') {
+				return $this->retryAfterRefresh($instanceUrl, $userId, $endpoint, $params, $method);
+			}
+
+			if ($status >= 400) {
+				return ['error' => 'HTTP ' . $status . ': ' . substr($body, 0, 200)];
+			}
+
+			$decoded = json_decode($body, true);
+			return is_array($decoded) ? $decoded : [];
+		} catch (Throwable $e) {
+			$this->logger->warning('Forgejo/Gitea request failed: ' . $e->getMessage(), ['exception' => $e]);
+			return ['error' => $e->getMessage()];
+		}
+	}
+
+	private function retryAfterRefresh(
+		string $instanceUrl,
+		string $userId,
+		string $endpoint,
+		array $params,
+		string $method,
+	): array {
+		$refreshToken = $this->tokens->getRefreshToken($userId);
+		if ($refreshToken === '') {
+			return ['error' => 'unauthorized'];
+		}
+		$clientId = $this->config->getAppValue(Application::APP_ID, 'client_id');
+		$clientSecret = $this->config->getAppValue(Application::APP_ID, 'client_secret');
+		$result = $this->requestOAuthAccessToken($instanceUrl, [
+			'grant_type' => 'refresh_token',
+			'refresh_token' => $refreshToken,
+			'client_id' => $clientId,
+			'client_secret' => $clientSecret,
+		]);
+		if (!isset($result['access_token'])) {
+			return ['error' => 'refresh_failed'];
+		}
+		$this->tokens->setAccessToken($userId, $result['access_token']);
+		if (isset($result['refresh_token'])) {
+			$this->tokens->setRefreshToken($userId, $result['refresh_token']);
+		}
+		return $this->request($instanceUrl, $result['access_token'], '', $endpoint, $params, $method);
+	}
+
+	/**
+	 * POST to {instanceUrl}/login/oauth/access_token — used for both
+	 * authorization_code and refresh_token grants.
+	 */
+	public function requestOAuthAccessToken(string $instanceUrl, array $params): array {
+		try {
+			$url = rtrim($instanceUrl, '/') . '/login/oauth/access_token';
+			$client = $this->clientService->newClient();
+			$response = $client->post($url, [
+				'body' => $params,
+				'headers' => [
+					'Accept' => 'application/json',
+					'User-Agent' => 'Nextcloud Forgejo/Gitea integration',
+				],
+				'timeout' => 30,
+			]);
+			$body = (string) $response->getBody();
+			$decoded = json_decode($body, true);
+			return is_array($decoded) ? $decoded : ['error' => 'invalid_response'];
+		} catch (Throwable $e) {
+			$this->logger->warning('OAuth token exchange failed: ' . $e->getMessage(), ['exception' => $e]);
+			return ['error' => $e->getMessage()];
+		}
+	}
+
+	/**
+	 * Fetches the currently authenticated user via /api/v1/user.
+	 */
+	public function getUser(string $instanceUrl, string $accessToken): array {
+		return $this->request($instanceUrl, $accessToken, '', 'user');
 	}
 }

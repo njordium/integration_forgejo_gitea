@@ -6,6 +6,7 @@ namespace OCA\ForgejoGitea\Settings;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\IConfig;
+use OCP\IURLGenerator;
 use OCP\Settings\ISettings;
 
 use OCA\ForgejoGitea\AppInfo\Application;
@@ -15,6 +16,7 @@ class Admin implements ISettings {
 	public function __construct(
 		private IConfig $config,
 		private IInitialState $initialStateService,
+		private IURLGenerator $urlGenerator,
 	) {
 	}
 
@@ -24,6 +26,7 @@ class Admin implements ISettings {
 			'client_id' => $this->config->getAppValue(Application::APP_ID, 'client_id'),
 			'client_secret' => $this->config->getAppValue(Application::APP_ID, 'client_secret'),
 			'instance_type_default' => $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo'),
+			'redirect_uri' => $this->urlGenerator->linkToRouteAbsolute(Application::APP_ID . '.config.oauthRedirect'),
 		]);
 		return new TemplateResponse(Application::APP_ID, 'adminSettings');
 	}

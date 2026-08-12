@@ -20,21 +20,16 @@ class Personal implements ISettings {
 	}
 
 	public function getForm(): TemplateResponse {
-		$userName = $this->config->getUserValue($this->userId, Application::APP_ID, 'user_name');
-		$searchEnabled = $this->config->getUserValue($this->userId, Application::APP_ID, 'search_enabled', '0');
-		$notificationEnabled = $this->config->getUserValue($this->userId, Application::APP_ID, 'notification_enabled', '0');
-
-		$clientID = $this->config->getAppValue(Application::APP_ID, 'client_id');
-		$clientSecret = ($this->config->getAppValue(Application::APP_ID, 'client_secret') !== '');
-		$oauthUrl = $this->config->getAppValue(Application::APP_ID, 'oauth_instance_url');
+		$instanceUrl = $this->config->getAppValue(Application::APP_ID, 'oauth_instance_url');
+		$clientId = $this->config->getAppValue(Application::APP_ID, 'client_id');
+		$clientSecret = $this->config->getAppValue(Application::APP_ID, 'client_secret');
+		$oauthConfigured = ($instanceUrl !== '' && $clientId !== '' && $clientSecret !== '');
 
 		$this->initialStateService->provideInitialState('user-config', [
-			'client_id' => $clientID,
-			'client_secret' => $clientSecret,
-			'oauth_instance_url' => $oauthUrl,
-			'search_enabled' => ($searchEnabled === '1'),
-			'notification_enabled' => ($notificationEnabled === '1'),
-			'user_name' => $userName,
+			'oauth_configured' => $oauthConfigured,
+			'oauth_instance_url' => $instanceUrl,
+			'instance_type_default' => $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo'),
+			'user_name' => $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name'),
 		]);
 		return new TemplateResponse(Application::APP_ID, 'personalSettings');
 	}
