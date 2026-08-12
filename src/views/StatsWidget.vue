@@ -152,7 +152,7 @@ export default {
 			case 'mentioned_open':
 				return `${this.instanceUrl}/issues?state=open&type=mentioned`
 			case 'contributions_7d':
-				return `${this.instanceUrl}/${encodeURIComponent(this.userName)}`
+				return `${this.instanceUrl}/${encodeURIComponent(this.userName)}?tab=activity`
 			default:
 				return this.instanceUrl
 			}
