@@ -100,7 +100,13 @@ class ConfigController extends Controller {
 	 * OAuth authorization-code callback. Verifies state, exchanges the code
 	 * for tokens, resolves and stores the connected user's login, then
 	 * redirects back to Personal Settings with a flash query param.
+	 *
+	 * External endpoint — Forgejo redirects the user's browser here, so
+	 * there is no Nextcloud requesttoken to check against. State parameter
+	 * from the OAuth spec provides equivalent CSRF protection.
+	 *
 	 * @NoAdminRequired
+	 * @NoCSRFRequired
 	 */
 	public function oauthRedirect(string $code = '', string $state = ''): RedirectResponse {
 		$targetBase = $this->urlGenerator->linkToRoute('settings.PersonalSettings.index', ['section' => 'connected-accounts']);
