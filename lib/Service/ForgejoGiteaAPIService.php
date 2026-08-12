@@ -69,6 +69,7 @@ class ForgejoGiteaAPIService {
 				'GET' => $client->get($url, $options),
 				'POST' => $client->post($url, $options),
 				'PUT' => $client->put($url, $options),
+				'PATCH' => $client->patch($url, $options),
 				'DELETE' => $client->delete($url, $options),
 				default => throw new Exception('Unsupported method: ' . $method),
 			};
@@ -182,8 +183,9 @@ class ForgejoGiteaAPIService {
 	}
 
 	/**
-	 * Issues for a single repo. Params passed through verbatim
-	 * (state, type, assigned_by, created_by, mentioned_by, limit, page...).
+	 * Issues (or pulls, controlled by type param) for a single repo.
+	 * Params passed through verbatim: state, type, assigned_by, created_by,
+	 * mentioned_by, limit, page…
 	 */
 	public function getRepoIssues(
 		string $instanceUrl,
@@ -199,5 +201,78 @@ class ForgejoGiteaAPIService {
 			return [];
 		}
 		return is_array($result) ? $result : [];
+	}
+
+	/**
+	 * Cross-repo issue/pull search — one call, uses server-side scoping.
+	 * Used for stats aggregation across all accessible repos.
+	 */
+	public function searchAllIssues(
+		string $instanceUrl,
+		string $accessToken,
+		string $userId,
+		array $params = [],
+	): array {
+		$result = $this->request($instanceUrl, $accessToken, $userId, 'repos/issues/search', $params);
+		if (isset($result['error']) || !is_array($result)) {
+			return [];
+		}
+		return $result;
+	}
+
+	/**
+	 * Contribution heatmap for the given user. Returns
+	 * [{ timestamp: <unix>, contributions: N }, …].
+	 */
+	public function getHeatmap(
+		string $instanceUrl,
+		string $accessToken,
+		string $userId,
+		string $username,
+	): array {
+		if ($username === '') {
+			return [];
+		}
+		$result = $this->request(
+			$instanceUrl,
+			$accessToken,
+			$userId,
+			'users/' . rawurlencode($username) . '/heatmap',
+		);
+		if (isset($result['error']) || !is_array($result)) {
+			return [];
+		}
+		return $result;
+	}
+
+	/**
+	 * Notifications for the connected user. Params: status-types (unread|read|pinned),
+	 * subject-type (Issue|Pull|Commit|Repository), page, limit.
+	 */
+	public function getNotifications(
+		string $instanceUrl,
+		string $accessToken,
+		string $userId,
+		array $params = [],
+	): array {
+		$result = $this->request($instanceUrl, $accessToken, $userId, 'notifications', $params);
+		if (isset($result['error']) || !is_array($result)) {
+			return [];
+		}
+		return $result;
+	}
+
+	/**
+	 * Mark a notification thread as read. Uses PATCH /notifications/threads/{id}.
+	 */
+	public function markNotificationRead(
+		string $instanceUrl,
+		string $accessToken,
+		string $userId,
+		string $threadId,
+	): bool {
+		$endpoint = 'notifications/threads/' . rawurlencode($threadId);
+		$result = $this->request($instanceUrl, $accessToken, $userId, $endpoint, [], 'PATCH');
+		return !isset($result['error']);
 	}
 }

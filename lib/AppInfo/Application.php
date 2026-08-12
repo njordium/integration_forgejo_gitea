@@ -13,7 +13,12 @@ use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 
 use OCA\ForgejoGitea\Dashboard\ClosedIssuesWidget;
+use OCA\ForgejoGitea\Dashboard\ClosedPRsWidget;
+use OCA\ForgejoGitea\Dashboard\HeatmapWidget;
+use OCA\ForgejoGitea\Dashboard\NotificationsWidget;
 use OCA\ForgejoGitea\Dashboard\OpenIssuesWidget;
+use OCA\ForgejoGitea\Dashboard\OpenPRsWidget;
+use OCA\ForgejoGitea\Dashboard\StatsWidget;
 
 class Application extends App implements IBootstrap {
 
@@ -24,8 +29,13 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function register(IRegistrationContext $context): void {
+		$context->registerDashboardWidget(StatsWidget::class);
 		$context->registerDashboardWidget(OpenIssuesWidget::class);
+		$context->registerDashboardWidget(NotificationsWidget::class);
 		$context->registerDashboardWidget(ClosedIssuesWidget::class);
+		$context->registerDashboardWidget(OpenPRsWidget::class);
+		$context->registerDashboardWidget(ClosedPRsWidget::class);
+		$context->registerDashboardWidget(HeatmapWidget::class);
 	}
 
 	public function boot(IBootContext $context): void {

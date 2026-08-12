@@ -183,6 +183,11 @@ export default {
 			required: true,
 			validator: v => v === 'open' || v === 'closed',
 		},
+		itemType: {
+			type: String,
+			default: 'issues',
+			validator: v => v === 'issues' || v === 'pulls',
+		},
 	},
 	data() {
 		return {
@@ -214,16 +219,26 @@ export default {
 				description: r.description || '',
 			}))
 		},
+		itemLabel() {
+			return this.itemType === 'pulls'
+				? t('integration_forgejo_gitea', 'pull requests')
+				: t('integration_forgejo_gitea', 'issues')
+		},
 		emptyLabel() {
 			const opt = FILTERS.find(f => f.value === this.config.filter) || FILTERS[0]
-			return t('integration_forgejo_gitea',
-				this.state === 'open' ? 'No open issues — {filter}.' : 'No closed issues — {filter}.',
-				{ filter: t('integration_forgejo_gitea', opt.labelKey).toLowerCase() })
+			const template = this.state === 'open'
+				? 'No open {kind} — {filter}.'
+				: 'No closed {kind} — {filter}.'
+			return t('integration_forgejo_gitea', template, {
+				kind: this.itemLabel,
+				filter: t('integration_forgejo_gitea', opt.labelKey).toLowerCase(),
+			})
 		},
 		settingsTitle() {
-			return this.state === 'open'
-				? t('integration_forgejo_gitea', 'Open Issues — settings')
-				: t('integration_forgejo_gitea', 'Closed Issues — settings')
+			const kind = this.itemType === 'pulls'
+				? (this.state === 'open' ? 'Open Pull Requests' : 'Closed Pull Requests')
+				: (this.state === 'open' ? 'Open Issues' : 'Closed Issues')
+			return t('integration_forgejo_gitea', '{kind} — settings', { kind: t('integration_forgejo_gitea', kind) })
 		},
 		visibleItems() {
 			return this.items.slice(0, MAX_VISIBLE_ITEMS)
@@ -232,14 +247,16 @@ export default {
 			if (this.items.length <= MAX_VISIBLE_ITEMS || !this.instanceUrl) {
 				return null
 			}
+			const kind = this.itemType === 'pulls' ? 'pulls' : 'issues'
+			const type = this.itemType === 'pulls' ? 'pull' : 'issue'
 			if (this.config.repos.length === 1) {
-				return `${this.instanceUrl}/${this.config.repos[0]}/issues?state=${this.state}&type=issue`
+				return `${this.instanceUrl}/${this.config.repos[0]}/${kind}?state=${this.state}&type=${type}`
 			}
 			return `${this.instanceUrl}/issues?state=${this.state}&type=your_repositories`
 		},
 		showMoreLabel() {
 			return t('integration_forgejo_gitea',
-				'Show all {n} on Forgejo',
+				'Show all {n}',
 				{ n: this.items.length })
 		},
 	},
@@ -252,7 +269,7 @@ export default {
 			this.error = ''
 			this.notConnected = false
 			try {
-				const url = generateUrl('/apps/integration_forgejo_gitea/issues?state=' + this.state)
+				const url = generateUrl('/apps/integration_forgejo_gitea/items?state=' + this.state + '&type=' + this.itemType)
 				const response = await axios.get(url)
 				this.items = response.data.items || []
 				this.config = response.data.config || { repos: [], filter: 'assigned' }
@@ -261,7 +278,7 @@ export default {
 				if (e?.response?.status === 401) {
 					this.notConnected = true
 				} else {
-					this.error = e?.response?.data?.error || t('integration_forgejo_gitea', 'Failed to load issues.')
+					this.error = e?.response?.data?.error || t('integration_forgejo_gitea', 'Failed to load items.')
 				}
 			} finally {
 				this.loading = false
@@ -294,9 +311,12 @@ export default {
 		async saveSettings() {
 			this.saving = true
 			try {
+				const keyPrefix = this.itemType === 'pulls'
+					? this.state + '_pulls_widget'
+					: this.state + '_widget'
 				const values = {
-					[this.state + '_widget_repos']: this.draftRepos,
-					[this.state + '_widget_filter']: this.draftFilter,
+					[keyPrefix + '_repos']: this.draftRepos,
+					[keyPrefix + '_filter']: this.draftFilter,
 				}
 				await axios.put(generateUrl('/apps/integration_forgejo_gitea/config'), { values })
 				this.showSettings = false

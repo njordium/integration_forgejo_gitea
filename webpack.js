@@ -13,8 +13,7 @@ webpackConfig.stats = {
 webpackConfig.entry = {
     personalSettings: { import: path.join(__dirname, 'src', 'personalSettings.js'), filename: 'integration_forgejo_gitea-personalSettings.js' },
     adminSettings: { import: path.join(__dirname, 'src', 'adminSettings.js'), filename: 'integration_forgejo_gitea-adminSettings.js' },
-    dashboardOpen: { import: path.join(__dirname, 'src', 'dashboardOpen.js'), filename: 'integration_forgejo_gitea-dashboardOpen.js' },
-    dashboardClosed: { import: path.join(__dirname, 'src', 'dashboardClosed.js'), filename: 'integration_forgejo_gitea-dashboardClosed.js' },
+    dashboard: { import: path.join(__dirname, 'src', 'dashboard.js'), filename: 'integration_forgejo_gitea-dashboard.js' },
 }
 
 module.exports = webpackConfig

@@ -13,7 +13,12 @@ return [
         ['name' => 'config#setConfig', 'url' => '/config', 'verb' => 'PUT'],
         ['name' => 'config#setAdminConfig', 'url' => '/admin-config', 'verb' => 'PUT'],
         ['name' => 'forgejoGiteaAPI#getRepos', 'url' => '/repos', 'verb' => 'GET'],
+        ['name' => 'forgejoGiteaAPI#getItems', 'url' => '/items', 'verb' => 'GET'],
         ['name' => 'forgejoGiteaAPI#getIssues', 'url' => '/issues', 'verb' => 'GET'],
+        ['name' => 'forgejoGiteaAPI#getHeatmap', 'url' => '/heatmap', 'verb' => 'GET'],
+        ['name' => 'forgejoGiteaAPI#getStats', 'url' => '/stats', 'verb' => 'GET'],
+        ['name' => 'forgejoGiteaAPI#getNotifications', 'url' => '/notifications', 'verb' => 'GET'],
+        ['name' => 'forgejoGiteaAPI#markNotificationRead', 'url' => '/notifications/{threadId}', 'verb' => 'PATCH'],
         ['name' => 'forgejoGiteaAPI#getForgejoGiteaUrl', 'url' => '/url', 'verb' => 'GET'],
         ['name' => 'forgejoGiteaAPI#getForgejoGiteaAvatar', 'url' => '/avatar', 'verb' => 'GET'],
     ]
