@@ -342,7 +342,7 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
-	padding: 4px 0;
+	padding: 12px 0 4px;
 	font-size: 13px;
 	max-height: 480px;
 	overflow: hidden;
@@ -350,8 +350,9 @@ export default {
 
 .fgw-toolbar {
 	position: absolute;
-	top: -4px;
-	right: 0;
+	top: -32px;
+	right: 4px;
+	z-index: 10;
 }
 
 .fgw-status {
