@@ -2,17 +2,81 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-08-13
+
+### Fixed
+- CI PHPStan install: pin `nextcloud/ocp` to `dev-stable30`. The previous `dev-master` constraint pulled in a PHP `~8.3 || ~8.4 || ~8.5` requirement that conflicted with the app's declared PHP 8.1 floor, blocking every CI run.
+- PHPStan analysis: point `scanDirectories` at `vendor/nextcloud/ocp/OCP` so PHPStan can resolve `OCP\*` classes (338 → 0 errors at level 5). Added ignore patterns for the `DataResponse<T>` generic checks (out of scope for this integration) and two PHPDoc-inferred unreachable-ternary false positives.
+- `ForgejoGiteaAPIService::getUserRepos()`: relaxed the `@return` shape to `list<array<string, mixed>>` so it reflects the real Forgejo response (many more fields than the four the controller ends up projecting).
+- `ConfigController::setAdminConfig()`: dropped the redundant `?? ''` on `parse_url()['host']` — the outer `isset()` already guarantees it.
+
+### Changed
+- `js/` bundles rebuilt so the shipped assets match the `1.0.2` manifest version.
+
+## [1.0.1] - 2026-08-13
+
+### Changed
+- Lint hygiene pass: zero errors, zero warnings.
+    - `eslint --fix` + `stylelint --fix` cleaned up 470 style issues.
+    - Global sed dropped unused `catch (e)` bindings and now-redundant `console.error(e)` calls that duplicated the `showError` toast.
+    - Perl expansion split compound `this.loading = true; …` openers and expanded collapsed 401-branch `if/else` blocks.
+    - Restored `catch (e)` where the block references `e`.
+    - Two `eslint.config.mjs` project overrides: `max-statements-per-line=2` (allow single-line guard clauses) and `jsdoc/require-param-type` + `require-param-description` off (no TypeScript in the tree).
+    - `@license` values use the SPDX identifier `AGPL-3.0-or-later`.
+- `appinfo/info.xml` aligned with `integration_suitecrm`: XSD schema on the root element, rich CDATA description grouped by intent (Overview / Work queue / Activity / Repositories / Notifications), single-author entry with homepage, `<repository type="git">`, `<screenshot>` with `small-thumbnail`, explicit `<php min-version="8.1"/>`.
+
+## [1.0.0] - 2026-08-13
+
+First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 2.0 authorization-code flow, dual Forgejo/Gitea support from a single codepath.
+
 ### Added
-- Initial scaffold: two dashboard widget stubs (Open Issues, Closed Issues) registered for Nextcloud 30–34
-- OAuth authorization-code redirect route (implementation lands in the next release)
-- Encrypted per-user OAuth token storage (`Service\TokenStorage`)
-- Admin and Personal settings pages (placeholder UI — OAuth connect flow lands in the next release)
-- Webpack build pipeline emits four bundles: `dashboardOpen`, `dashboardClosed`, `personalSettings`, `adminSettings`
+- **Dashboard widgets (eleven total)** grouped by intent:
+    - **Overview.** Six KPI tiles in a compact grid — open issues assigned, open issues I opened, open PRs where my review is requested, open PRs I opened, open issues mentioning me, contributions in the last 7 days. Each tile deep-links to the equivalent Forgejo/Gitea filter.
+    - **Work queue.** Open Issues, Closed Issues, Open PR, Closed PR, Reviews.
+    - **Activity.** Commits (with an "only mine" toggle) and a GitHub-style contribution Heatmap with a stats grid (total, this week, this month, current streak, longest streak, best day).
+    - **Repositories.** Milestones (progress bars) and Repo stats (per-repo card with stars, forks, open issues, open PRs, latest release tag).
+    - **Notifications.** Unread inbox with type icons and per-row mark-as-read.
+- **Per-widget settings modal** (⋯ menu) with a searchable multi-select repository picker, filter radio (assigned / created / mentioning / all), and a Refresh frequency picker (Never / 30s / 1m / 5m default / 15m / 30m / 1h). Settings persist per user, per widget.
+- **Auto-refresh with tab-hidden pause** — widgets stop polling while the browser tab is hidden and re-fetch once when it regains focus.
+- **Heatmap time-window toggle** (13 or 26 weeks) with adaptive cell sizing.
+- **Brand-aware UX** — admin picks the instance type (Forgejo or Gitea); every widget's title and icon switches accordingly. Ships real logos: Forgejo horn (CC-BY-SA-4.0, Caesar Schinas), Gitea teacup (CC-BY-4.0).
+- **Personal Settings override** for the Forgejo/Gitea username used in filter queries when it differs from the Nextcloud user id.
+- **OAuth 2.0 authorization-code flow** end-to-end.
+    - 32-byte session-bound `state` parameter verified with `hash_equals()`.
+    - Access and refresh tokens encrypted at rest via Nextcloud's `ICrypto`.
+    - Automatic refresh on 401 via the stored refresh token.
+- **Admin OAuth settings form** — client id, client secret, instance URL, default instance type. Redirect URI shown with a copy button so it can be pasted byte-for-byte into the Forgejo/Gitea OAuth application.
 
-## 0.0.1
+### Security
+- OWASP Top 10 review documented in [`SECURITY.md`](SECURITY.md).
+- **A05 — Instance URL validation.** Scheme restricted to `http` / `https`; non-loopback HTTP triggers an admin warning.
+- **A09 — Bearer tokens redacted from log messages.** Structured summary logging with a `redactSecrets()` helper replaces prior Guzzle-exception serialisation that could write access tokens into `nextcloud.log`.
+- **A09 — Upstream error detail** kept in the server log; the browser response carries only a short code (`request_failed`, `upstream_500`, `not_connected`).
 
-Initial baseline commit.
+### Fixed
+- **CSRF-blocked OAuth callback.** The external Forgejo redirect had no CSRF token; added `@NoCSRFRequired` with the `state` parameter as protection.
+- **Vue 3 reactivity in widget settings modal.** Replaced `.sync` (Vue 2 pattern) with `v-model` so radio buttons update correctly.
+- **Overview stats counts.** `/repos/issues/search` silently ignores `assigned_by=username` / `created_by=username`; switched to the boolean `assigned=true` / `created=true` / `review_requested=true` filters that respect the bearer identity.
+- **Expired-token refresh path.** Added `http_errors => false` to the Guzzle options so 4xx responses don't throw before the 401-retry branch runs.
+- **"Failed to load items" runtime error.** Widget `setup()` functions now expose `setIntervalMs` from the `useAutoRefresh` composable via `Object.assign(bridge, refresh)`.
+- **"Show all" link** now centres inside the widget card via `align-self: center` + `margin: auto` (belt-and-braces), and sizes to content instead of stretching to the widget width.
+- **Heatmap "Show all" link** points at `/{username}?tab=activity` (where the heatmap actually lives) instead of the empty profile default.
+- **Overview stats tile links** use `/issues?type=assigned` (or the corresponding filter) instead of `type=your_repositories`.
+- Widget titles shortened to survive narrower dashboard columns: `Recent commits` → `Commits`, `Pending reviews` → `Reviews`, `Repository stats` → `Repo stats`, `Pull Requests` → `PR`.
+- Avatar contrast, widget overflow / max-height defensive caps, widget settings menu visibility, avatar fallback, "N more unread" collapse in Notifications.
+
+### Changed
+- App bumped through several pre-release versions (`0.0.1` → `0.0.2` → `1.0.0`) during scaffold, brand-icon swap, and screenshot rollout — the `1.0.0` tag is the first Nextcloud App Store submission.
+
+## 0.0.1 - 2026-08-13
+
+Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
+
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/njordium/integration_forgejo_gitea/releases/tag/v1.0.0

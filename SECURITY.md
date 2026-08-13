@@ -1,3 +1,25 @@
+# Security Policy
+
+## Supported versions
+
+Only the latest minor release receives security updates. As of writing, that is `1.0.x`.
+
+| Version | Supported          |
+| ------- | ------------------ |
+| 1.0.x   | :white_check_mark: |
+| < 1.0   | :x:                |
+
+## Reporting a vulnerability
+
+Please report suspected vulnerabilities **privately** — do not open a public GitHub issue.
+
+- **Preferred**: [Report a vulnerability](https://github.com/njordium/integration_forgejo_gitea/security/advisories/new) via GitHub's private security advisory flow.
+- **Alternative**: email `security@njordium.com` with a clear description, reproduction steps, affected version, and relevant configuration.
+
+You will receive an acknowledgement within **3 working days** and a status update within **10 working days**. Coordinated disclosure is welcomed; a fix release and public advisory land together once a patched version is available.
+
+---
+
 # Security review — integration_forgejo_gitea
 
 Full code audit against the **OWASP Top 10 (2021)** and adjacent hardening guidance. Covers every code path landed at commit `df0583e`. Fixes for the findings called out below are in commit `<this-commit>`.
