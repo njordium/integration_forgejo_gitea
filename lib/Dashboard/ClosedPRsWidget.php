@@ -32,8 +32,8 @@ class ClosedPRsWidget implements IWidget {
 	public function getTitle(): string {
 		$type = $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo');
 		return $type === 'gitea'
-			? $this->l10n->t('Gitea: Closed Pull Requests')
-			: $this->l10n->t('Forgejo: Closed Pull Requests');
+			? $this->l10n->t('Gitea: Closed PR')
+			: $this->l10n->t('Forgejo: Closed PR');
 	}
 
 	public function getOrder(): int {

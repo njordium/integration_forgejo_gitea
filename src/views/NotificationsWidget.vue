@@ -329,12 +329,14 @@ export default {
 }
 
 .fgw-more {
-	display: inline-flex;
+	display: flex;
 	align-self: center;
 	align-items: center;
+	justify-content: center;
 	gap: 4px;
 	padding: 6px 12px;
-	margin: 4px 0 0;
+	margin: 4px auto 0;
+	width: fit-content;
 	color: var(--color-primary-element);
 	text-decoration: none;
 	font-size: 12px;

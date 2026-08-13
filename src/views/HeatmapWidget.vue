@@ -512,12 +512,14 @@ body.theme--dark .fgw-heatmap__body[data-brand="gitea"] .fgw-stat__value {
 }
 
 .fgw-more {
-	display: inline-flex;
+	display: flex;
 	align-self: center;
 	align-items: center;
+	justify-content: center;
 	gap: 4px;
 	padding: 6px 12px;
-	margin: 8px 0 0;
+	margin: 8px auto 0;
+	width: fit-content;
 	color: var(--color-primary-element);
 	text-decoration: none;
 	font-size: 12px;

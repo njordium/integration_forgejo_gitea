@@ -32,8 +32,8 @@ class OpenPRsWidget implements IWidget {
 	public function getTitle(): string {
 		$type = $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo');
 		return $type === 'gitea'
-			? $this->l10n->t('Gitea: Open Pull Requests')
-			: $this->l10n->t('Forgejo: Open Pull Requests');
+			? $this->l10n->t('Gitea: Open PR')
+			: $this->l10n->t('Forgejo: Open PR');
 	}
 
 	public function getOrder(): int {
