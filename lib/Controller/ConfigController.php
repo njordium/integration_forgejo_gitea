@@ -59,13 +59,43 @@ class ConfigController extends Controller {
 	}
 
 	/**
-	 * Store admin config values.
+	 * Store admin config values. Validates the instance URL to prevent common
+	 * misconfigurations (missing scheme, plain-HTTP for a real instance).
 	 */
 	public function setAdminConfig(array $values): DataResponse {
+		$warnings = [];
+		if (isset($values['oauth_instance_url'])) {
+			$rawUrl = trim((string) $values['oauth_instance_url']);
+			if ($rawUrl !== '') {
+				$parsed = parse_url($rawUrl);
+				if (!is_array($parsed) || !isset($parsed['scheme'], $parsed['host'])) {
+					return new DataResponse(['error' => 'invalid_instance_url'], 400);
+				}
+				if (!in_array(strtolower($parsed['scheme']), ['http', 'https'], true)) {
+					return new DataResponse(['error' => 'invalid_instance_url_scheme'], 400);
+				}
+				if (strtolower($parsed['scheme']) === 'http'
+					&& !$this->isLoopbackHost($parsed['host'] ?? '')) {
+					$warnings[] = 'http_url_not_recommended';
+				}
+			}
+		}
 		foreach ($values as $key => $value) {
 			$this->config->setAppValue(Application::APP_ID, $key, (string) $value);
 		}
-		return new DataResponse(1);
+		return new DataResponse(['ok' => 1, 'warnings' => $warnings]);
+	}
+
+	/**
+	 * Loopback hosts allowed to use plain HTTP without warning — dev setups
+	 * running against local Forgejo/Gitea instances.
+	 */
+	private function isLoopbackHost(string $host): bool {
+		$host = strtolower($host);
+		return $host === 'localhost'
+			|| $host === '127.0.0.1'
+			|| $host === '::1'
+			|| str_ends_with($host, '.localhost');
 	}
 
 	/**

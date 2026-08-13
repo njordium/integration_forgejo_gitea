@@ -85,14 +85,26 @@ class ForgejoGiteaAPIService {
 			}
 
 			if ($status >= 400) {
-				return ['error' => 'HTTP ' . $status . ': ' . substr($body, 0, 200)];
+				$this->logger->info('Forgejo/Gitea request returned non-2xx', [
+					'endpoint' => $endpoint,
+					'method' => $method,
+					'status' => $status,
+				]);
+				return ['error' => 'upstream_' . $status];
 			}
 
 			$decoded = json_decode($body, true);
 			return is_array($decoded) ? $decoded : [];
 		} catch (Throwable $e) {
-			$this->logger->warning('Forgejo/Gitea request failed: ' . $e->getMessage(), ['exception' => $e]);
-			return ['error' => $e->getMessage()];
+			// Log a redacted summary — never the exception object, which
+			// Nextcloud's logger otherwise records with full request context
+			// (including the Authorization: Bearer header).
+			$this->logger->warning('Forgejo/Gitea request failed', [
+				'endpoint' => $endpoint,
+				'method' => $method,
+				'reason' => $this->redactSecrets($e->getMessage(), $accessToken),
+			]);
+			return ['error' => 'request_failed'];
 		}
 	}
 
@@ -146,9 +158,26 @@ class ForgejoGiteaAPIService {
 			$decoded = json_decode($body, true);
 			return is_array($decoded) ? $decoded : ['error' => 'invalid_response'];
 		} catch (Throwable $e) {
-			$this->logger->warning('OAuth token exchange failed: ' . $e->getMessage(), ['exception' => $e]);
-			return ['error' => $e->getMessage()];
+			$secret = (string) ($params['client_secret'] ?? '');
+			$refreshToken = (string) ($params['refresh_token'] ?? '');
+			$this->logger->warning('OAuth token exchange failed', [
+				'reason' => $this->redactSecrets($e->getMessage(), $secret, $refreshToken),
+			]);
+			return ['error' => 'token_exchange_failed'];
 		}
+	}
+
+	/**
+	 * Replace known-secret substrings with a fixed marker so the redacted
+	 * string is safe to write to the log. Empty secrets are ignored.
+	 */
+	private function redactSecrets(string $subject, string ...$secrets): string {
+		foreach ($secrets as $s) {
+			if ($s !== '') {
+				$subject = str_replace($s, '[REDACTED]', $subject);
+			}
+		}
+		return $subject;
 	}
 
 	/**
