@@ -1,12 +1,43 @@
 <?xml version="1.0"?>
-<info>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
 	<id>integration_forgejo_gitea</id>
 	<name>Forgejo / Gitea integration</name>
-	<summary>Dashboard widgets and search for Forgejo and Gitea issues</summary>
-	<description><![CDATA[Integration with Forgejo and Gitea instances. Provides two dashboard widgets — Open Issues and Closed Issues — each with per-widget repository selection and filter (assigned / created / mentioned / all). Later releases add unified search, link previews and notifications.]]></description>
-	<version>0.0.2</version>
-	<licence>agpl</licence>
-	<author>Njordium</author>
+	<summary>Eleven dashboard widgets for Forgejo and Gitea. Issues, pull requests, reviews, commits, milestones, repo stats, notifications and a contribution heatmap.</summary>
+	<description><![CDATA[Bring the parts of Forgejo or Gitea that people actually check ten times a day into the Nextcloud dashboard. Signs in once with OAuth 2.0 authorization-code grant against your Forgejo or Gitea instance and then keeps the two systems talking in the background.
+
+## Dashboard widgets
+
+Eleven widgets, grouped by intent so the dashboard reads like your day rather than a list of API endpoints.
+
+**Overview.** Six KPI tiles in a compact grid — open issues assigned, open issues you opened, open PRs where your review is requested, open PRs you opened, open issues mentioning you, contributions in the last 7 days. Each tile links to the equivalent Forgejo dashboard filter.
+
+**Work queue.** Open Issues, Closed Issues, Open PRs, Closed PRs and Reviews. Each carries a per-widget repository picker (searchable multi-select), a filter (assigned / created / mentioning / all), and a refresh-frequency setting. Rows show number, title, assignee avatar, up to three colour-matched label chips, repo full-name and relative timestamp. A "Show all" link at the bottom of each widget lands on the equivalent Forgejo filter page.
+
+**Activity.** Commits (latest commits across your selected repos, with an optional "only mine" toggle) and a GitHub-style contribution Heatmap (last 3 or 6 months, user-selectable) plus a stats grid showing total, this week, this month, current streak, longest streak, best day.
+
+**Repositories.** Milestones (open milestones with progress bars across selected repos) and Repo stats (compact per-repo card showing stars, forks, open issues, open PRs, latest release tag).
+
+**Notifications.** Unread Forgejo/Gitea notifications inbox with type icons (issue / PR / commit / repository) and a per-row mark-as-read action.
+
+## Auto-refresh
+
+All eleven widgets poll in the background at a user-selected cadence (Never / 30s / 1m / 5m default / 15m / 30m / 1h), pause while the browser tab is hidden, and re-fetch once when the tab regains focus. An idle dashboard tab left open in the background does not hammer your Forgejo.
+
+## Brand-aware UX
+
+Admin picks the instance type (Forgejo or Gitea). Every widget's icon and title switch to match — Forgejo orange horn (CC-BY-SA-4.0, Caesar Schinas), Gitea green tea-cup (CC-BY-4.0) — so a Nextcloud instance connected to Forgejo reads as *Forgejo: Open Issues*, a Gitea one reads *Gitea: Open Issues*.
+
+## Security
+
+OAuth 2.0 authorization-code flow (RFC 6749) is the only connect path. 32-byte session-bound `state` parameter, verified with `hash_equals()`. Access and refresh tokens encrypted at rest via Nextcloud's `ICrypto`. Bearer tokens redacted from log messages. Generic error responses to the browser; upstream detail stays in the server log. Instance URL validated on admin write. Full OWASP Top 10 mapping in `SECURITY.md` in the repository.
+
+## Requirements
+
+Any recent Forgejo (v1.x, all v7+) or Gitea (v1.19+) instance with an OAuth application registered. PHP 8.1+, Nextcloud 30-34.]]></description>
+	<version>1.0.0</version>
+	<licence>AGPL-3.0-or-later</licence>
+	<author homepage="https://njordium.com">Kim Haverblad</author>
 	<namespace>ForgejoGitea</namespace>
 	<documentation>
 		<developer>https://github.com/njordium/integration_forgejo_gitea</developer>
@@ -15,8 +46,22 @@
 	<category>dashboard</category>
 	<website>https://github.com/njordium/integration_forgejo_gitea</website>
 	<bugs>https://github.com/njordium/integration_forgejo_gitea/issues</bugs>
-	<screenshot>https://raw.githubusercontent.com/njordium/integration_forgejo_gitea/main/img/screenshot.png</screenshot>
+	<repository type="git">https://github.com/njordium/integration_forgejo_gitea</repository>
+	<!--
+		Screenshots are pulled by the App Store from the raw GitHub URL at
+		release time. Add one <screenshot> element per image, in the order
+		you want them to appear in the store gallery (the first one is the
+		hero shot on the listing card). Optional `small-thumbnail` gives
+		the App Store a lighter image for card previews.
+
+		To add more shots: drop the PNG in `img/`, commit it to main, and
+		add a <screenshot> line here. On the next release the App Store
+		fetches it. No cache-buster needed — the store re-reads on every
+		release upload.
+	-->
+	<screenshot small-thumbnail="https://raw.githubusercontent.com/njordium/integration_forgejo_gitea/main/img/screenshot.png">https://raw.githubusercontent.com/njordium/integration_forgejo_gitea/main/img/screenshot.png</screenshot>
 	<dependencies>
+		<php min-version="8.1"/>
 		<nextcloud min-version="30" max-version="34"/>
 	</dependencies>
 	<settings>
