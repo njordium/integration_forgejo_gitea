@@ -265,7 +265,7 @@ export default {
 			return this.items.slice(0, MAX_VISIBLE_ITEMS)
 		},
 		showMoreLink() {
-			if (this.items.length <= MAX_VISIBLE_ITEMS || !this.instanceUrl) {
+			if (!this.instanceUrl || !this.config.repos.length) {
 				return null
 			}
 			const kind = this.itemType === 'pulls' ? 'pulls' : 'issues'
@@ -273,7 +273,8 @@ export default {
 			if (this.config.repos.length === 1) {
 				return `${this.instanceUrl}/${this.config.repos[0]}/${kind}?state=${this.state}&type=${type}`
 			}
-			return `${this.instanceUrl}/issues?state=${this.state}&type=your_repositories`
+			// Multi-repo: land on Forgejo's dashboard issues or pulls tab.
+			return `${this.instanceUrl}/${kind}?state=${this.state}&type=your_repositories`
 		},
 		showMoreLabel() {
 			return t('integration_forgejo_gitea', 'Show all')
