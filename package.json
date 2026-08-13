@@ -1,6 +1,6 @@
 {
 	"name": "integration_forgejo_gitea",
-	"version": "0.0.1",
+	"version": "1.0.1",
 	"description": "Forgejo / Gitea integration for Nextcloud",
 	"main": "index.js",
 	"directories": {
