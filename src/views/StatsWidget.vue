@@ -1,13 +1,17 @@
 <template>
 	<div class="fgw-stats">
 		<div class="fgw-toolbar">
-			<NcActions :force-menu="true">
+			<NcActions :forceMenu="true">
 				<NcActionButton @click="openSettings">
-					<template #icon><CogIcon :size="20" /></template>
+					<template #icon>
+						<CogIcon :size="20" />
+					</template>
 					{{ t('integration_forgejo_gitea', 'Widget settings') }}
 				</NcActionButton>
 				<NcActionButton @click="fetch">
-					<template #icon><RefreshIcon :size="20" /></template>
+					<template #icon>
+						<RefreshIcon :size="20" />
+					</template>
 					{{ t('integration_forgejo_gitea', 'Refresh') }}
 				</NcActionButton>
 			</NcActions>
@@ -21,7 +25,9 @@
 					<RefreshIntervalPicker v-model="draftRefreshSeconds" />
 				</section>
 				<div class="fgw-modal__actions">
-					<NcButton @click="closeSettings">{{ t('integration_forgejo_gitea', 'Cancel') }}</NcButton>
+					<NcButton @click="closeSettings">
+						{{ t('integration_forgejo_gitea', 'Cancel') }}
+					</NcButton>
 					<NcButton variant="primary" :disabled="saving" @click="saveSettings">
 						<template #icon>
 							<NcLoadingIcon v-if="saving" :size="16" />
@@ -62,17 +68,16 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-
-import NcActions from '@nextcloud/vue/components/NcActions'
+import { generateUrl } from '@nextcloud/router'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcActions from '@nextcloud/vue/components/NcActions'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
-import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
+import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
@@ -85,6 +90,7 @@ export default {
 		Object.assign(bridge, refresh)
 		return { autoRefresh: bridge }
 	},
+
 	data() {
 		return {
 			loading: true,
@@ -100,18 +106,21 @@ export default {
 			saving: false,
 		}
 	},
+
 	computed: {
 		tiles() {
-			return this.rawTiles.map(t => ({
+			return this.rawTiles.map((t) => ({
 				...t,
 				url: this.linkForTile(t.key),
 			}))
 		},
 	},
+
 	mounted() {
 		this.autoRefresh.fetchLater = () => this.fetch()
 		this.fetch()
 	},
+
 	methods: {
 		async fetch() {
 			this.loading = true
@@ -138,36 +147,41 @@ export default {
 				this.loading = false
 			}
 		},
+
 		linkForTile(key) {
-			if (!this.instanceUrl) return null
+			if (!this.instanceUrl) { return null }
 			switch (key) {
-			case 'open_assigned_issues':
-				return `${this.instanceUrl}/issues?state=open&type=assigned`
-			case 'open_created_issues':
-				return `${this.instanceUrl}/issues?state=open&type=created_by`
-			case 'open_assigned_prs':
-				return `${this.instanceUrl}/pulls?state=open&type=assigned`
-			case 'open_created_prs':
-				return `${this.instanceUrl}/pulls?state=open&type=created_by`
-			case 'mentioned_open':
-				return `${this.instanceUrl}/issues?state=open&type=mentioned`
-			case 'contributions_7d':
-				return `${this.instanceUrl}/${encodeURIComponent(this.userName)}?tab=activity`
-			default:
-				return this.instanceUrl
+				case 'open_assigned_issues':
+					return `${this.instanceUrl}/issues?state=open&type=assigned`
+				case 'open_created_issues':
+					return `${this.instanceUrl}/issues?state=open&type=created_by`
+				case 'open_assigned_prs':
+					return `${this.instanceUrl}/pulls?state=open&type=assigned`
+				case 'open_created_prs':
+					return `${this.instanceUrl}/pulls?state=open&type=created_by`
+				case 'mentioned_open':
+					return `${this.instanceUrl}/issues?state=open&type=mentioned`
+				case 'contributions_7d':
+					return `${this.instanceUrl}/${encodeURIComponent(this.userName)}?tab=activity`
+				default:
+					return this.instanceUrl
 			}
 		},
+
 		formatValue(v) {
-			if (v >= 50) return '50+'
+			if (v >= 50) { return '50+' }
 			return String(v)
 		},
+
 		openSettings() {
 			this.draftRefreshSeconds = this.refreshIntervalSeconds
 			this.showSettings = true
 		},
+
 		closeSettings() {
 			this.showSettings = false
 		},
+
 		async saveSettings() {
 			this.saving = true
 			try {
@@ -177,7 +191,7 @@ export default {
 				this.showSettings = false
 				showSuccess(t('integration_forgejo_gitea', 'Widget settings saved.'))
 				await this.fetch()
-			} catch (e) {
+			} catch {
 				showError(t('integration_forgejo_gitea', 'Failed to save widget settings.'))
 			} finally {
 				this.saving = false

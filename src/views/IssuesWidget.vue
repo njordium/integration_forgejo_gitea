@@ -1,7 +1,7 @@
 <template>
 	<div class="fgw-widget">
 		<div class="fgw-toolbar">
-			<NcActions :force-menu="true">
+			<NcActions :forceMenu="true">
 				<NcActionButton @click="openSettings">
 					<template #icon>
 						<CogIcon :size="20" />
@@ -33,7 +33,9 @@
 		<div v-else-if="!config.repos.length" class="fgw-status">
 			<span>{{ t('integration_forgejo_gitea', 'No repositories selected.') }}</span>
 			<NcButton variant="primary" @click="openSettings">
-				<template #icon><CogIcon :size="16" /></template>
+				<template #icon>
+					<CogIcon :size="16" />
+				</template>
 				{{ t('integration_forgejo_gitea', 'Choose repositories') }}
 			</NcButton>
 		</div>
@@ -45,7 +47,11 @@
 		<template v-else>
 			<ul class="fgw-list">
 				<li v-for="item in visibleItems" :key="item.id" class="fgw-item">
-					<a :href="item.html_url" target="_blank" rel="noopener" class="fgw-item__link">
+					<a
+						:href="item.html_url"
+						target="_blank"
+						rel="noopener"
+						class="fgw-item__link">
 						<div class="fgw-item__row">
 							<Avatar :url="item.user.avatar_url" :login="item.user.login" />
 							<span class="fgw-item__number">#{{ item.number }}</span>
@@ -53,14 +59,19 @@
 						</div>
 						<div class="fgw-item__meta">
 							<span class="fgw-item__repo">{{ item.repo_full_name }}</span>
-							<LabelChip v-for="l in item.labels.slice(0, 3)" :key="l.name" :name="l.name" :color="l.color" />
+							<LabelChip
+								v-for="l in item.labels.slice(0, 3)"
+								:key="l.name"
+								:name="l.name"
+								:color="l.color" />
 							<span v-if="item.comments" class="fgw-item__comments">💬 {{ item.comments }}</span>
 							<span class="fgw-item__updated">{{ formatUpdated(item.updated_at) }}</span>
 						</div>
 					</a>
 				</li>
 			</ul>
-			<a v-if="showMoreLink"
+			<a
+				v-if="showMoreLink"
 				:href="showMoreLink"
 				target="_blank"
 				rel="noopener"
@@ -105,9 +116,9 @@
 							v-model="draftRepos"
 							:options="repoOptions"
 							:multiple="true"
-							:close-on-select="false"
+							:closeOnSelect="false"
 							:searchable="true"
-							:clear-search-on-select="false"
+							:clearSearchOnSelect="false"
 							:placeholder="t('integration_forgejo_gitea', 'Type to search repositories…')"
 							label="label"
 							:reduce="opt => opt.value"
@@ -144,22 +155,20 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import moment from '@nextcloud/moment'
-
-import NcActions from '@nextcloud/vue/components/NcActions'
+import { generateUrl } from '@nextcloud/router'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcActions from '@nextcloud/vue/components/NcActions'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
-import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
 import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
-
+import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import Avatar from '../components/ItemAvatar.vue'
 import LabelChip from '../components/LabelChip.vue'
 import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
@@ -192,24 +201,28 @@ export default {
 		LabelChip,
 		RefreshIntervalPicker,
 	},
+
+	props: {
+		state: {
+			type: String,
+			required: true,
+			validator: (v) => v === 'open' || v === 'closed',
+		},
+
+		itemType: {
+			type: String,
+			default: 'issues',
+			validator: (v) => v === 'issues' || v === 'pulls',
+		},
+	},
+
 	setup() {
 		const bridge = { fetchLater: () => null }
 		const refresh = useAutoRefresh(() => bridge.fetchLater())
 		Object.assign(bridge, refresh)
 		return { autoRefresh: bridge }
 	},
-	props: {
-		state: {
-			type: String,
-			required: true,
-			validator: v => v === 'open' || v === 'closed',
-		},
-		itemType: {
-			type: String,
-			default: 'issues',
-			validator: v => v === 'issues' || v === 'pulls',
-		},
-	},
+
 	data() {
 		return {
 			loading: true,
@@ -226,27 +239,31 @@ export default {
 			saving: false,
 		}
 	},
+
 	computed: {
 		filterOptions() {
-			return FILTERS.map(f => ({
+			return FILTERS.map((f) => ({
 				value: f.value,
 				label: t('integration_forgejo_gitea', f.labelKey),
 			}))
 		},
+
 		repoOptions() {
-			return this.allRepos.map(r => ({
+			return this.allRepos.map((r) => ({
 				label: r.full_name,
 				value: r.full_name,
 				description: r.description || '',
 			}))
 		},
+
 		itemLabel() {
 			return this.itemType === 'pulls'
 				? t('integration_forgejo_gitea', 'pull requests')
 				: t('integration_forgejo_gitea', 'issues')
 		},
+
 		emptyLabel() {
-			const opt = FILTERS.find(f => f.value === this.config.filter) || FILTERS[0]
+			const opt = FILTERS.find((f) => f.value === this.config.filter) || FILTERS[0]
 			const template = this.state === 'open'
 				? 'No open {kind} — {filter}.'
 				: 'No closed {kind} — {filter}.'
@@ -255,15 +272,18 @@ export default {
 				filter: t('integration_forgejo_gitea', opt.labelKey).toLowerCase(),
 			})
 		},
+
 		settingsTitle() {
 			const kind = this.itemType === 'pulls'
 				? (this.state === 'open' ? 'Open Pull Requests' : 'Closed Pull Requests')
 				: (this.state === 'open' ? 'Open Issues' : 'Closed Issues')
 			return t('integration_forgejo_gitea', '{kind} — settings', { kind: t('integration_forgejo_gitea', kind) })
 		},
+
 		visibleItems() {
 			return this.items.slice(0, MAX_VISIBLE_ITEMS)
 		},
+
 		showMoreLink() {
 			if (!this.instanceUrl || !this.config.repos.length) {
 				return null
@@ -276,14 +296,17 @@ export default {
 			// Multi-repo: land on Forgejo's dashboard issues or pulls tab.
 			return `${this.instanceUrl}/${kind}?state=${this.state}&type=your_repositories`
 		},
+
 		showMoreLabel() {
 			return t('integration_forgejo_gitea', 'Show all')
 		},
 	},
+
 	mounted() {
 		this.autoRefresh.fetchLater = () => this.fetchIssues()
 		this.fetchIssues()
 	},
+
 	methods: {
 		async fetchIssues() {
 			this.loading = true
@@ -310,9 +333,11 @@ export default {
 				this.loading = false
 			}
 		},
+
 		refresh() {
 			this.fetchIssues()
 		},
+
 		async openSettings() {
 			this.draftRepos = [...this.config.repos]
 			this.draftFilter = this.config.filter
@@ -320,21 +345,24 @@ export default {
 			this.showSettings = true
 			await this.fetchRepos()
 		},
+
 		closeSettings() {
 			this.showSettings = false
 		},
+
 		async fetchRepos() {
 			this.reposLoading = true
 			try {
 				const url = generateUrl('/apps/integration_forgejo_gitea/repos')
 				const response = await axios.get(url)
 				this.allRepos = response.data.repos || []
-			} catch (e) {
+			} catch {
 				showError(t('integration_forgejo_gitea', 'Failed to load repositories.'))
 			} finally {
 				this.reposLoading = false
 			}
 		},
+
 		async saveSettings() {
 			this.saving = true
 			try {
@@ -354,14 +382,15 @@ export default {
 				this.showSettings = false
 				showSuccess(t('integration_forgejo_gitea', 'Widget settings saved.'))
 				await this.fetchIssues()
-			} catch (e) {
+			} catch {
 				showError(t('integration_forgejo_gitea', 'Failed to save widget settings.'))
 			} finally {
 				this.saving = false
 			}
 		},
+
 		formatUpdated(iso) {
-			if (!iso) return ''
+			if (!iso) { return '' }
 			return moment(iso).fromNow()
 		},
 	},
@@ -453,7 +482,7 @@ export default {
 	color: var(--color-text-maxcontrast);
 	flex-wrap: wrap;
 	align-items: center;
-	padding-left: 28px;
+	padding-inline-start: 28px;
 }
 
 .fgw-item__repo {

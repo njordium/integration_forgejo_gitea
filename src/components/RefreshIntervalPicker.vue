@@ -1,12 +1,12 @@
 <template>
 	<NcSelect
-		:model-value="selected"
+		:modelValue="selected"
 		:options="options"
 		:clearable="false"
 		:searchable="false"
 		label="label"
 		class="fgw-interval-picker"
-		@update:model-value="onChange" />
+		@update:modelValue="onChange" />
 </template>
 
 <script>
@@ -18,6 +18,7 @@ export default {
 	props: {
 		modelValue: { type: Number, default: 300 },
 	},
+
 	emits: ['update:modelValue'],
 	computed: {
 		options() {
@@ -31,11 +32,13 @@ export default {
 				{ value: 3600, label: t('integration_forgejo_gitea', 'Every hour') },
 			]
 		},
+
 		selected() {
-			return this.options.find(o => o.value === this.modelValue)
-				|| this.options.find(o => o.value === 300)
+			return this.options.find((o) => o.value === this.modelValue)
+				|| this.options.find((o) => o.value === 300)
 		},
 	},
+
 	methods: {
 		onChange(v) {
 			if (v && typeof v === 'object' && 'value' in v) {

@@ -1,7 +1,7 @@
 <template>
 	<div class="fgw-notifications">
 		<div class="fgw-toolbar">
-			<NcActions :force-menu="true">
+			<NcActions :forceMenu="true">
 				<NcActionButton @click="openSettings">
 					<template #icon>
 						<CogIcon :size="20" />
@@ -32,7 +32,11 @@
 		<template v-else>
 			<ul class="fgw-list">
 				<li v-for="item in visibleItems" :key="item.id" class="fgw-item">
-					<a :href="item.html_url" target="_blank" rel="noopener" class="fgw-item__link">
+					<a
+						:href="item.html_url"
+						target="_blank"
+						rel="noopener"
+						class="fgw-item__link">
 						<div class="fgw-item__row">
 							<component :is="iconFor(item.type)" :size="16" class="fgw-item__type-icon" />
 							<span class="fgw-item__title">{{ item.title || '(untitled)' }}</span>
@@ -71,7 +75,9 @@
 						<RefreshIntervalPicker v-model="draftRefreshSeconds" />
 					</section>
 					<div class="fgw-modal__actions">
-						<NcButton @click="closeSettings">{{ t('integration_forgejo_gitea', 'Cancel') }}</NcButton>
+						<NcButton @click="closeSettings">
+							{{ t('integration_forgejo_gitea', 'Cancel') }}
+						</NcButton>
 						<NcButton variant="primary" :disabled="saving" @click="saveSettings">
 							<template #icon>
 								<NcLoadingIcon v-if="saving" :size="16" />
@@ -88,26 +94,25 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import moment from '@nextcloud/moment'
-
-import NcActions from '@nextcloud/vue/components/NcActions'
+import { generateUrl } from '@nextcloud/router'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcActions from '@nextcloud/vue/components/NcActions'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
-import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
+import AlertCircleIcon from 'vue-material-design-icons/AlertCircle.vue'
+import BellIcon from 'vue-material-design-icons/Bell.vue'
+import CheckIcon from 'vue-material-design-icons/Check.vue'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
-import CheckIcon from 'vue-material-design-icons/Check.vue'
-import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
-import AlertCircleIcon from 'vue-material-design-icons/AlertCircle.vue'
-import SourcePullIcon from 'vue-material-design-icons/SourcePull.vue'
-import SourceCommitIcon from 'vue-material-design-icons/SourceCommit.vue'
 import FolderIcon from 'vue-material-design-icons/Folder.vue'
-import BellIcon from 'vue-material-design-icons/Bell.vue'
 import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
+import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
+import SourceCommitIcon from 'vue-material-design-icons/SourceCommit.vue'
+import SourcePullIcon from 'vue-material-design-icons/SourcePull.vue'
+import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
 const MAX_VISIBLE_ITEMS = 4
@@ -132,12 +137,14 @@ export default {
 		BellIcon,
 		OpenInNewIcon,
 	},
+
 	setup() {
 		const bridge = { fetchLater: () => null }
 		const refresh = useAutoRefresh(() => bridge.fetchLater())
 		Object.assign(bridge, refresh)
 		return { autoRefresh: bridge }
 	},
+
 	data() {
 		return {
 			loading: true,
@@ -151,21 +158,26 @@ export default {
 			saving: false,
 		}
 	},
+
 	computed: {
 		visibleItems() {
 			return this.items.slice(0, MAX_VISIBLE_ITEMS)
 		},
+
 		hiddenCount() {
 			return Math.max(0, this.items.length - MAX_VISIBLE_ITEMS)
 		},
+
 		notificationsUrl() {
 			return this.instanceUrl ? `${this.instanceUrl}/notifications` : null
 		},
 	},
+
 	mounted() {
 		this.autoRefresh.fetchLater = () => this.fetch()
 		this.fetch()
 	},
+
 	methods: {
 		async fetch() {
 			this.loading = true
@@ -190,13 +202,16 @@ export default {
 				this.loading = false
 			}
 		},
+
 		openSettings() {
 			this.draftRefreshSeconds = this.refreshIntervalSeconds
 			this.showSettings = true
 		},
+
 		closeSettings() {
 			this.showSettings = false
 		},
+
 		async saveSettings() {
 			this.saving = true
 			try {
@@ -206,31 +221,34 @@ export default {
 				this.showSettings = false
 				showSuccess(t('integration_forgejo_gitea', 'Widget settings saved.'))
 				await this.fetch()
-			} catch (e) {
+			} catch {
 				showError(t('integration_forgejo_gitea', 'Failed to save widget settings.'))
 			} finally {
 				this.saving = false
 			}
 		},
+
 		async markRead(item) {
 			try {
 				await axios.patch(generateUrl('/apps/integration_forgejo_gitea/notifications/' + encodeURIComponent(item.id)))
-				this.items = this.items.filter(i => i.id !== item.id)
-			} catch (e) {
+				this.items = this.items.filter((i) => i.id !== item.id)
+			} catch {
 				showError(t('integration_forgejo_gitea', 'Failed to mark as read.'))
 			}
 		},
+
 		iconFor(type) {
 			switch (type) {
-			case 'Issue': return 'AlertCircleIcon'
-			case 'Pull': return 'SourcePullIcon'
-			case 'Commit': return 'SourceCommitIcon'
-			case 'Repository': return 'FolderIcon'
-			default: return 'BellIcon'
+				case 'Issue': return 'AlertCircleIcon'
+				case 'Pull': return 'SourcePullIcon'
+				case 'Commit': return 'SourceCommitIcon'
+				case 'Repository': return 'FolderIcon'
+				default: return 'BellIcon'
 			}
 		},
+
 		formatUpdated(iso) {
-			if (!iso) return ''
+			if (!iso) { return '' }
 			return moment(iso).fromNow()
 		},
 	},

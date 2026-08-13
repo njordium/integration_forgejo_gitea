@@ -82,7 +82,7 @@
 
 /**
  * @copyright Copyright (c) 2026 Njordium
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * Single shared dashboard bundle. Registers every Forgejo/Gitea widget id.
  * All PHP widget classes point their load() at the same bundle name so this

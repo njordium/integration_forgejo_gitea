@@ -1,13 +1,17 @@
 <template>
 	<div class="fgw-heatmap">
 		<div class="fgw-toolbar">
-			<NcActions :force-menu="true">
+			<NcActions :forceMenu="true">
 				<NcActionButton @click="openSettings">
-					<template #icon><CogIcon :size="20" /></template>
+					<template #icon>
+						<CogIcon :size="20" />
+					</template>
 					{{ t('integration_forgejo_gitea', 'Widget settings') }}
 				</NcActionButton>
 				<NcActionButton @click="fetch">
-					<template #icon><RefreshIcon :size="20" /></template>
+					<template #icon>
+						<RefreshIcon :size="20" />
+					</template>
 					{{ t('integration_forgejo_gitea', 'Refresh') }}
 				</NcActionButton>
 			</NcActions>
@@ -19,19 +23,21 @@
 				<section class="fgw-modal__section">
 					<h4>{{ t('integration_forgejo_gitea', 'Time window') }}</h4>
 					<NcSelect
-						:model-value="selectedWindow"
+						:modelValue="selectedWindow"
 						:options="windowOptions"
 						:clearable="false"
 						:searchable="false"
 						label="label"
-						@update:model-value="onWindowChange" />
+						@update:modelValue="onWindowChange" />
 				</section>
 				<section class="fgw-modal__section">
 					<h4>{{ t('integration_forgejo_gitea', 'Refresh frequency') }}</h4>
 					<RefreshIntervalPicker v-model="draftRefreshSeconds" />
 				</section>
 				<div class="fgw-modal__actions">
-					<NcButton @click="closeSettings">{{ t('integration_forgejo_gitea', 'Cancel') }}</NcButton>
+					<NcButton @click="closeSettings">
+						{{ t('integration_forgejo_gitea', 'Cancel') }}
+					</NcButton>
 					<NcButton variant="primary" :disabled="saving" @click="saveSettings">
 						<template #icon>
 							<NcLoadingIcon v-if="saving" :size="16" />
@@ -88,27 +94,49 @@
 
 			<div class="fgw-stats-grid">
 				<div class="fgw-stat">
-					<div class="fgw-stat__value">{{ total }}</div>
-					<div class="fgw-stat__label">{{ t('integration_forgejo_gitea', 'Total 12 months') }}</div>
+					<div class="fgw-stat__value">
+						{{ total }}
+					</div>
+					<div class="fgw-stat__label">
+						{{ t('integration_forgejo_gitea', 'Total 12 months') }}
+					</div>
 				</div>
 				<div class="fgw-stat">
-					<div class="fgw-stat__value">{{ contribsThisWeek }}</div>
-					<div class="fgw-stat__label">{{ t('integration_forgejo_gitea', 'This week') }}</div>
+					<div class="fgw-stat__value">
+						{{ contribsThisWeek }}
+					</div>
+					<div class="fgw-stat__label">
+						{{ t('integration_forgejo_gitea', 'This week') }}
+					</div>
 				</div>
 				<div class="fgw-stat">
-					<div class="fgw-stat__value">{{ contribsThisMonth }}</div>
-					<div class="fgw-stat__label">{{ t('integration_forgejo_gitea', 'This month') }}</div>
+					<div class="fgw-stat__value">
+						{{ contribsThisMonth }}
+					</div>
+					<div class="fgw-stat__label">
+						{{ t('integration_forgejo_gitea', 'This month') }}
+					</div>
 				</div>
 				<div class="fgw-stat">
-					<div class="fgw-stat__value">{{ currentStreak }}</div>
-					<div class="fgw-stat__label">{{ t('integration_forgejo_gitea', 'Current streak (days)') }}</div>
+					<div class="fgw-stat__value">
+						{{ currentStreak }}
+					</div>
+					<div class="fgw-stat__label">
+						{{ t('integration_forgejo_gitea', 'Current streak (days)') }}
+					</div>
 				</div>
 				<div class="fgw-stat">
-					<div class="fgw-stat__value">{{ longestStreak }}</div>
-					<div class="fgw-stat__label">{{ t('integration_forgejo_gitea', 'Longest streak') }}</div>
+					<div class="fgw-stat__value">
+						{{ longestStreak }}
+					</div>
+					<div class="fgw-stat__label">
+						{{ t('integration_forgejo_gitea', 'Longest streak') }}
+					</div>
 				</div>
 				<div class="fgw-stat">
-					<div class="fgw-stat__value">{{ bestDay.count }}</div>
+					<div class="fgw-stat__value">
+						{{ bestDay.count }}
+					</div>
 					<div class="fgw-stat__label">
 						{{ bestDay.count > 0
 							? t('integration_forgejo_gitea', 'Best day ({date})', { date: bestDay.date })
@@ -132,21 +160,20 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 import moment from '@nextcloud/moment'
-
-import NcActions from '@nextcloud/vue/components/NcActions'
+import { generateUrl } from '@nextcloud/router'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcActions from '@nextcloud/vue/components/NcActions'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
-import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
-import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
-import { showError, showSuccess } from '@nextcloud/dialogs'
+import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
+import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
 
 const GRID_LEFT = 32
@@ -167,6 +194,7 @@ export default {
 		Object.assign(bridge, refresh)
 		return { autoRefresh: bridge }
 	},
+
 	data() {
 		return {
 			loading: true,
@@ -185,28 +213,35 @@ export default {
 			saving: false,
 		}
 	},
+
 	computed: {
 		cellMetrics() {
 			return CELL_METRICS[this.windowWeeks] || CELL_METRICS[13]
 		},
+
 		CELL_SIZE() {
 			return this.cellMetrics.size
 		},
+
 		SVG_WIDTH() {
 			return GRID_LEFT + this.windowWeeks * (this.cellMetrics.size + this.cellMetrics.gap) + 4
 		},
+
 		SVG_HEIGHT() {
 			return GRID_TOP + 7 * (this.cellMetrics.size + this.cellMetrics.gap) + 4
 		},
+
 		windowOptions() {
 			return [
 				{ value: 13, label: t('integration_forgejo_gitea', 'Last 3 months') },
 				{ value: 26, label: t('integration_forgejo_gitea', 'Last 6 months') },
 			]
 		},
+
 		selectedWindow() {
-			return this.windowOptions.find(o => o.value === this.draftWindowWeeks) || this.windowOptions[0]
+			return this.windowOptions.find((o) => o.value === this.draftWindowWeeks) || this.windowOptions[0]
 		},
+
 		pointsByDay() {
 			const map = new Map()
 			for (const p of this.points) {
@@ -215,6 +250,7 @@ export default {
 			}
 			return map
 		},
+
 		cells() {
 			const cells = []
 			const end = moment().startOf('day')
@@ -239,10 +275,11 @@ export default {
 			}
 			return cells
 		},
+
 		monthLabels() {
 			const seen = new Set()
 			const labels = []
-			for (const c of this.cells.filter(c => c.y === GRID_TOP)) {
+			for (const c of this.cells.filter((c) => c.y === GRID_TOP)) {
 				const date = moment.unix(c.key)
 				const monthKey = date.format('YYYY-MM')
 				if (!seen.has(monthKey)) {
@@ -252,6 +289,7 @@ export default {
 			}
 			return labels
 		},
+
 		weekdayLabels() {
 			const size = this.cellMetrics.size
 			const gap = this.cellMetrics.gap
@@ -261,22 +299,25 @@ export default {
 				{ day: 5, y: GRID_TOP + 5 * (size + gap) + size - 2, text: t('integration_forgejo_gitea', 'Fri') },
 			]
 		},
+
 		contribsThisWeek() {
 			const weekStart = moment().startOf('isoWeek').unix()
 			let sum = 0
 			for (const [ts, count] of this.pointsByDay) {
-				if (ts >= weekStart) sum += count
+				if (ts >= weekStart) { sum += count }
 			}
 			return sum
 		},
+
 		contribsThisMonth() {
 			const monthStart = moment().startOf('month').unix()
 			let sum = 0
 			for (const [ts, count] of this.pointsByDay) {
-				if (ts >= monthStart) sum += count
+				if (ts >= monthStart) { sum += count }
 			}
 			return sum
 		},
+
 		currentStreak() {
 			let streak = 0
 			let day = moment().startOf('day')
@@ -286,35 +327,38 @@ export default {
 			}
 			return streak
 		},
+
 		longestStreak() {
 			const sortedDays = Array.from(this.pointsByDay.keys()).sort((a, b) => a - b)
 			let longest = 0
 			let current = 0
 			let prev = null
 			for (const d of sortedDays) {
-				if ((this.pointsByDay.get(d) || 0) <= 0) continue
+				if ((this.pointsByDay.get(d) || 0) <= 0) { continue }
 				if (prev === null || d - prev === 86400) {
 					current++
 				} else {
 					current = 1
 				}
-				if (current > longest) longest = current
+				if (current > longest) { longest = current }
 				prev = d
 			}
 			return longest
 		},
+
 		fullHeatmapUrl() {
-			if (!this.instanceUrl || !this.userName) return null
+			if (!this.instanceUrl || !this.userName) { return null }
 			// Forgejo/Gitea render the 12-month contribution heatmap on the
 			// user profile's Public-activity tab, not on the default
 			// Repositories tab. Accounts without personal repos land on an
 			// empty Repositories tab otherwise.
 			return `${this.instanceUrl}/${encodeURIComponent(this.userName)}?tab=activity`
 		},
+
 		bestDay() {
 			let best = { count: 0, ts: 0 }
 			for (const [ts, count] of this.pointsByDay) {
-				if (count > best.count) best = { count, ts }
+				if (count > best.count) { best = { count, ts } }
 			}
 			return {
 				count: best.count,
@@ -322,10 +366,12 @@ export default {
 			}
 		},
 	},
+
 	mounted() {
 		this.autoRefresh.fetchLater = () => this.fetch()
 		this.fetch()
 	},
+
 	methods: {
 		async fetch() {
 			this.loading = true
@@ -357,26 +403,31 @@ export default {
 				this.loading = false
 			}
 		},
+
 		levelFor(count) {
-			if (count <= 0) return 0
-			if (count <= 2) return 1
-			if (count <= 5) return 2
-			if (count <= 10) return 3
+			if (count <= 0) { return 0 }
+			if (count <= 2) { return 1 }
+			if (count <= 5) { return 2 }
+			if (count <= 10) { return 3 }
 			return 4
 		},
+
 		openSettings() {
 			this.draftRefreshSeconds = this.refreshIntervalSeconds
 			this.draftWindowWeeks = this.windowWeeks
 			this.showSettings = true
 		},
+
 		closeSettings() {
 			this.showSettings = false
 		},
+
 		onWindowChange(v) {
 			if (v && typeof v === 'object' && 'value' in v) {
 				this.draftWindowWeeks = v.value
 			}
 		},
+
 		async saveSettings() {
 			this.saving = true
 			try {
@@ -389,7 +440,7 @@ export default {
 				this.showSettings = false
 				showSuccess(t('integration_forgejo_gitea', 'Widget settings saved.'))
 				await this.fetch()
-			} catch (e) {
+			} catch {
 				showError(t('integration_forgejo_gitea', 'Failed to save widget settings.'))
 			} finally {
 				this.saving = false

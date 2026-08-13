@@ -1,6 +1,6 @@
 /**
  * @copyright Copyright (c) 2026 Njordium
- * @license GNU AGPL version 3 or any later version
+ * @license AGPL-3.0-or-later
  *
  * Polling helper. Calls fetchFn on an interval, pauses while the tab is
  * hidden, refetches once when the tab becomes visible again. The interval
@@ -12,6 +12,11 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000
 
+/**
+ *
+ * @param fetchFn
+ * @param initialIntervalMs
+ */
 export function useAutoRefresh(fetchFn, initialIntervalMs = DEFAULT_INTERVAL_MS) {
 	let timer = null
 	const currentMs = ref(initialIntervalMs)
@@ -37,7 +42,7 @@ export function useAutoRefresh(fetchFn, initialIntervalMs = DEFAULT_INTERVAL_MS)
 
 	const setIntervalMs = (ms) => {
 		const next = Number(ms) || 0
-		if (currentMs.value === next) return
+		if (currentMs.value === next) { return }
 		currentMs.value = next
 		start()
 	}

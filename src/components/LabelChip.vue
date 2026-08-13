@@ -3,19 +3,30 @@
 </template>
 
 <script>
+/**
+ *
+ * @param hex
+ */
 function hexToRgb(hex) {
-	if (!hex) return null
+	if (!hex) { return null }
 	const cleaned = hex.replace('#', '')
-	if (cleaned.length !== 6) return null
+	if (cleaned.length !== 6) { return null }
 	const r = parseInt(cleaned.slice(0, 2), 16)
 	const g = parseInt(cleaned.slice(2, 4), 16)
 	const b = parseInt(cleaned.slice(4, 6), 16)
-	if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null
+	if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) { return null }
 	return { r, g, b }
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.r
+ * @param root0.g
+ * @param root0.b
+ */
 function luminance({ r, g, b }) {
-	const to = c => {
+	const to = (c) => {
 		const v = c / 255
 		return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
 	}
@@ -28,10 +39,11 @@ export default {
 		name: { type: String, required: true },
 		color: { type: String, default: '' },
 	},
+
 	computed: {
 		chipStyle() {
 			const rgb = hexToRgb(this.color)
-			if (!rgb) return {}
+			if (!rgb) { return {} }
 			const bg = `#${this.color.replace('#', '')}`
 			const fg = luminance(rgb) > 0.55 ? '#111' : '#fff'
 			return { backgroundColor: bg, color: fg }

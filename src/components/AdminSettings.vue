@@ -20,7 +20,7 @@
 				:options="instanceTypeOptions"
 				:reduce="opt => opt.value"
 				:clearable="false"
-				input-id="instance-type-select"
+				inputId="instance-type-select"
 				@input="onFieldChange" />
 
 			<label for="oauth_instance_url">
@@ -72,16 +72,14 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
-import { showSuccess, showError } from '@nextcloud/dialogs'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 import { loadState } from '@nextcloud/initial-state'
-
-import NcTextField from '@nextcloud/vue/components/NcTextField'
+import { generateUrl } from '@nextcloud/router'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import NcPasswordField from '@nextcloud/vue/components/NcPasswordField'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
-import NcButton from '@nextcloud/vue/components/NcButton'
+import NcTextField from '@nextcloud/vue/components/NcTextField'
 import ContentCopyIcon from 'vue-material-design-icons/ContentCopy.vue'
-
 import { delay } from '../utils.js'
 
 export default {
@@ -93,6 +91,7 @@ export default {
 		NcButton,
 		ContentCopyIcon,
 	},
+
 	data() {
 		const initial = loadState('integration_forgejo_gitea', 'admin-config', {})
 		return {
@@ -101,28 +100,34 @@ export default {
 				client_id: initial.client_id ?? '',
 				client_secret: initial.client_secret ?? '',
 			},
+
 			instanceType: initial.instance_type_default ?? 'forgejo',
 			instanceTypeOptions: [
 				{ label: 'Forgejo', value: 'forgejo' },
 				{ label: 'Gitea', value: 'gitea' },
 			],
+
 			redirectUri: initial.redirect_uri ?? '',
 		}
 	},
+
 	computed: {
 		iconClass() {
 			return 'icon icon-forgejo_gitea-' + this.instanceType
 		},
+
 		instanceUrlPlaceholder() {
 			return this.instanceType === 'gitea'
 				? 'https://gitea.example.org'
 				: 'https://git.example.org'
 		},
 	},
+
 	methods: {
 		onFieldChange() {
 			delay(this.saveConfig, 2000)()
 		},
+
 		async saveConfig() {
 			const payload = {
 				oauth_instance_url: (this.state.oauth_instance_url ?? '').replace(/\/+$/, ''),
@@ -133,16 +138,16 @@ export default {
 			try {
 				await axios.put(generateUrl('/apps/integration_forgejo_gitea/admin-config'), { values: payload })
 				showSuccess(t('integration_forgejo_gitea', 'Forgejo / Gitea admin settings saved'))
-			} catch (e) {
+			} catch {
 				showError(t('integration_forgejo_gitea', 'Failed to save admin settings'))
-				console.error(e)
 			}
 		},
+
 		async copyRedirect() {
 			try {
 				await navigator.clipboard.writeText(this.redirectUri)
 				showSuccess(t('integration_forgejo_gitea', 'Redirect URI copied'))
-			} catch (e) {
+			} catch {
 				showError(t('integration_forgejo_gitea', 'Failed to copy'))
 			}
 		},

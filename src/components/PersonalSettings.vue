@@ -59,17 +59,15 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { loadState } from '@nextcloud/initial-state'
-
+import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
+import CheckCircleIcon from 'vue-material-design-icons/CheckCircle.vue'
 import LoginIcon from 'vue-material-design-icons/Login.vue'
 import LogoutIcon from 'vue-material-design-icons/Logout.vue'
-import CheckCircleIcon from 'vue-material-design-icons/CheckCircle.vue'
-
 import { delay } from '../utils.js'
 
 export default {
@@ -82,6 +80,7 @@ export default {
 		LogoutIcon,
 		CheckCircleIcon,
 	},
+
 	data() {
 		const s = loadState('integration_forgejo_gitea', 'user-config', {})
 		return {
@@ -90,21 +89,26 @@ export default {
 			loading: false,
 		}
 	},
+
 	computed: {
 		connected() {
 			return !!this.state.user_name
 		},
+
 		instanceType() {
 			return this.state.instance_type_default === 'gitea' ? 'gitea' : 'forgejo'
 		},
+
 		iconClass() {
 			return 'icon icon-forgejo_gitea-' + this.instanceType
 		},
+
 		connectLabel() {
 			const label = this.instanceType === 'gitea' ? 'Gitea' : 'Forgejo'
 			return t('integration_forgejo_gitea', 'Connect to {label}', { label })
 		},
 	},
+
 	mounted() {
 		const params = new URLSearchParams(window.location.search)
 		if (params.get('forgejo_gitea_connected') === '1') {
@@ -117,6 +121,7 @@ export default {
 			this.cleanQuery()
 		}
 	},
+
 	methods: {
 		async onConnect() {
 			this.loading = true
@@ -127,8 +132,7 @@ export default {
 					return
 				}
 				showError(t('integration_forgejo_gitea', 'Could not start OAuth flow.'))
-			} catch (e) {
-				console.error(e)
+			} catch {
 				const msg = e?.response?.data?.error === 'admin_not_configured'
 					? t('integration_forgejo_gitea', 'Admin OAuth application not configured.')
 					: t('integration_forgejo_gitea', 'Could not start OAuth flow.')
@@ -137,6 +141,7 @@ export default {
 				this.loading = false
 			}
 		},
+
 		async onDisconnect() {
 			this.loading = true
 			try {
@@ -145,28 +150,30 @@ export default {
 				})
 				this.state.user_name = ''
 				showSuccess(t('integration_forgejo_gitea', 'Disconnected.'))
-			} catch (e) {
-				console.error(e)
+			} catch {
 				showError(t('integration_forgejo_gitea', 'Failed to disconnect.'))
 			} finally {
 				this.loading = false
 			}
 		},
+
 		cleanQuery() {
 			const url = new URL(window.location.href)
 			url.searchParams.delete('forgejo_gitea_connected')
 			url.searchParams.delete('forgejo_gitea_error')
 			window.history.replaceState({}, '', url.toString())
 		},
+
 		onOverrideChange() {
 			delay(this.saveOverride, 800)()
 		},
+
 		async saveOverride() {
 			try {
 				await axios.put(generateUrl('/apps/integration_forgejo_gitea/config'), {
 					values: { override_user_name: this.overrideUserName.trim() },
 				})
-			} catch (e) {
+			} catch {
 				showError(t('integration_forgejo_gitea', 'Failed to save username override.'))
 			}
 		},
