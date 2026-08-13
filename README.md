@@ -1,5 +1,9 @@
 # Forgejo / Gitea integration for Nextcloud
 
+[![Lint & Test](https://github.com/njordium/integration_forgejo_gitea/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/njordium/integration_forgejo_gitea/actions/workflows/lint.yml)
+[![Latest release](https://img.shields.io/github/v/tag/njordium/integration_forgejo_gitea?label=release&sort=semver)](https://github.com/njordium/integration_forgejo_gitea/releases)
+[![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](COPYING)
+
 ![Dashboard widgets](img/screenshot.png)
 
 > Njordium-authored Nextcloud integration for [Forgejo](https://forgejo.org/) and [Gitea](https://gitea.io/) instances. Nextcloud **30 to 34**, PHP **8.1+**, Vue 3 / `@nextcloud/vue` v9, OAuth 2.0 authorization-code flow, eleven configurable dashboard widgets, per-widget repository picker and refresh-frequency, brand-aware icons and titles that switch between Forgejo and Gitea based on your instance type.
@@ -68,7 +72,7 @@ Full OWASP Top 10 mapping and follow-up hardening items are in [`SECURITY.md`](S
 
 - Nextcloud **30 – 34**
 - **Forgejo** or **Gitea** (any recent version — both expose the same `/api/v1/` surface, both support OAuth authorization-code grant)
-- PHP **8.1+**
+- PHP **8.1+** (CI verifies syntax and PHPUnit on 8.1 / 8.2 / 8.3; PHPStan runs at level 5 against `nextcloud/ocp:dev-stable30`)
 - Node **20+** and npm **10+** for building from source
 
 ---
@@ -90,7 +94,7 @@ chown -R www-data:www-data .
 
 Then enable in **Apps → Integration → Forgejo / Gitea integration**.
 
-The compiled `js/` bundles are tracked in the repository during the pre-release phase so a `git pull` on the host is enough to deploy new versions — no `npm ci && npm run build` step required. This will move behind a release-tarball workflow before v1; the `.gitignore` note calls this out.
+The compiled `js/` bundles are tracked in the repository so a `git pull` on the host is enough to deploy new versions — no `npm ci && npm run build` step required. Every tagged release (e.g. [v1.0.2](https://github.com/njordium/integration_forgejo_gitea/releases/tag/v1.0.2)) also ships a release tarball for the Nextcloud App Store install path.
 
 ### From the Nextcloud App Store
 
@@ -218,9 +222,11 @@ npm run build          # production build
 
 # PHP
 composer install
-vendor/bin/phpunit     # unit tests
-vendor/bin/phpstan analyse -c phpstan.neon
+vendor/bin/phpunit --configuration phpunit.xml
+vendor/bin/phpstan analyse --configuration phpstan.neon --no-progress
 ```
+
+The `nextcloud/ocp:dev-stable30` dev dependency provides OCP interface stubs that PHPStan scans via `scanDirectories: vendor/nextcloud/ocp/OCP` in `phpstan.neon`. Pinning to `dev-stable30` (rather than `dev-master`) keeps the app aligned with our minimum supported Nextcloud version (30) and its PHP 8.1 baseline — running against `dev-master` would drag in PHP 8.3+ requirements that don't reflect what the app actually targets.
 
 The dashboard bundle is a single `dashboard.js` that registers all eleven widget IDs via `OCA.Dashboard.register`. The build produces four bundles total: `dashboard`, `personalSettings`, `adminSettings`, plus the `@nextcloud/*` vendored chunks. Each PHP widget's `load()` method calls `Util::addScript(APP_ID, APP_ID.'-dashboard')` so the shared bundle is loaded once regardless of how many widgets the user has enabled.
 
