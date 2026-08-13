@@ -1,8 +1,8 @@
 # Forgejo / Gitea integration for Nextcloud
 
-Dashboard widgets and (later) unified search, link previews and notifications for [Forgejo](https://forgejo.org/) and [Gitea](https://gitea.io/) instances, from inside Nextcloud.
+![Dashboard widgets](img/screenshot.png)
 
-Two configurable dashboard widgets — **Open Issues** and **Closed Issues** — each with a per-widget repository picker and an issue-scope filter (assigned / created / mentioned / all). Add one, add both, filter each one independently.
+Dashboard widgets for [Forgejo](https://forgejo.org/) and [Gitea](https://gitea.io/) instances, from inside Nextcloud. Eleven widgets covering open/closed issues and pull requests, pending reviews, recent commits, milestones, per-repository stats, notifications, an activity heatmap and an at-a-glance KPI overview — each with per-widget repository selection and refresh-frequency settings.
 
 ---
 

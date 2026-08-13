@@ -15,7 +15,7 @@
 	<category>dashboard</category>
 	<website>https://github.com/njordium/integration_forgejo_gitea</website>
 	<bugs>https://github.com/njordium/integration_forgejo_gitea/issues</bugs>
-	<screenshot>https://raw.githubusercontent.com/njordium/integration_forgejo_gitea/main/img/screenshot1.png</screenshot>
+	<screenshot>https://raw.githubusercontent.com/njordium/integration_forgejo_gitea/main/img/screenshot.png</screenshot>
 	<dependencies>
 		<nextcloud min-version="30" max-version="34"/>
 	</dependencies>
