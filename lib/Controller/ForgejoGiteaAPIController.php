@@ -116,7 +116,7 @@ class ForgejoGiteaAPIController extends Controller {
 			]);
 		}
 
-		$userName = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name');
+		$userName = $this->effectiveUserName();
 		$params = [
 			'state' => $state,
 			'type' => $type === 'pulls' ? 'pulls' : 'issues',
@@ -178,7 +178,7 @@ class ForgejoGiteaAPIController extends Controller {
 		if ($accessToken === '') {
 			return new DataResponse(['error' => 'not_connected'], Http::STATUS_UNAUTHORIZED);
 		}
-		$userName = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name');
+		$userName = $this->effectiveUserName();
 		$raw = $this->api->getHeatmap($instanceUrl, $accessToken, $this->userId ?? '', $userName);
 
 		$points = [];
@@ -219,7 +219,7 @@ class ForgejoGiteaAPIController extends Controller {
 		if ($accessToken === '') {
 			return new DataResponse(['error' => 'not_connected'], Http::STATUS_UNAUTHORIZED);
 		}
-		$user = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name');
+		$user = $this->effectiveUserName();
 		if ($user === '') {
 			return new DataResponse(['error' => 'not_connected'], Http::STATUS_UNAUTHORIZED);
 		}
@@ -318,7 +318,7 @@ class ForgejoGiteaAPIController extends Controller {
 		$decodedRepos = json_decode($reposRaw, true);
 		$repos = is_array($decodedRepos) ? array_values(array_filter($decodedRepos, 'is_string')) : [];
 		$onlyMine = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'commits_widget_only_mine', '1') === '1';
-		$userName = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name');
+		$userName = $this->effectiveUserName();
 
 		if (empty($repos)) {
 			return new DataResponse([
@@ -504,7 +504,7 @@ class ForgejoGiteaAPIController extends Controller {
 		$reposRaw = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'reviews_widget_repos', '[]');
 		$decodedRepos = json_decode($reposRaw, true);
 		$repos = is_array($decodedRepos) ? array_values(array_filter($decodedRepos, 'is_string')) : [];
-		$userName = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name');
+		$userName = $this->effectiveUserName();
 		$reviewsRefresh = $this->readRefreshInterval('reviews');
 
 		if (empty($repos) || $userName === '') {
@@ -582,6 +582,25 @@ class ForgejoGiteaAPIController extends Controller {
 		return $type === 'pulls'
 			? $state . '_pulls_widget'
 			: $state . '_widget';
+	}
+
+	/**
+	 * The Forgejo/Gitea login used when filtering queries by assigned_by /
+	 * created_by / mentioned_by, and for the heatmap. Falls back to the
+	 * OAuth-connected login (`user_name`) when the user has not entered
+	 * an override in Personal Settings.
+	 */
+	private function effectiveUserName(): string {
+		$override = trim($this->config->getUserValue(
+			$this->userId ?? '',
+			Application::APP_ID,
+			'override_user_name',
+			''
+		));
+		if ($override !== '') {
+			return $override;
+		}
+		return $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name');
 	}
 
 	/**

@@ -39,6 +39,20 @@
 					{{ t('integration_forgejo_gitea', 'Disconnect') }}
 				</NcButton>
 			</div>
+
+			<div v-if="connected" class="override">
+				<label for="fgw-override-user">
+					{{ t('integration_forgejo_gitea', 'Query as a different username') }}
+				</label>
+				<NcTextField
+					id="fgw-override-user"
+					v-model="overrideUserName"
+					:placeholder="state.user_name"
+					@input="onOverrideChange" />
+				<p class="settings-hint">
+					{{ t('integration_forgejo_gitea', 'Widgets filter Forgejo/Gitea data by this login (assigned to me, created by me, my heatmap, etc.). Leave empty to use the OAuth-connected login shown above. Set this when your OAuth account and your queryable account are different — e.g. bot / shared accounts, or an SSO login that differs from your Forgejo username.') }}
+				</p>
+			</div>
 		</template>
 	</div>
 </template>
@@ -51,22 +65,28 @@ import { loadState } from '@nextcloud/initial-state'
 
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import NcTextField from '@nextcloud/vue/components/NcTextField'
 import LoginIcon from 'vue-material-design-icons/Login.vue'
 import LogoutIcon from 'vue-material-design-icons/Logout.vue'
 import CheckCircleIcon from 'vue-material-design-icons/CheckCircle.vue'
+
+import { delay } from '../utils.js'
 
 export default {
 	name: 'PersonalSettings',
 	components: {
 		NcButton,
 		NcNoteCard,
+		NcTextField,
 		LoginIcon,
 		LogoutIcon,
 		CheckCircleIcon,
 	},
 	data() {
+		const s = loadState('integration_forgejo_gitea', 'user-config', {})
 		return {
-			state: loadState('integration_forgejo_gitea', 'user-config', {}),
+			state: s,
+			overrideUserName: s.override_user_name || '',
 			loading: false,
 		}
 	},
@@ -138,6 +158,18 @@ export default {
 			url.searchParams.delete('forgejo_gitea_error')
 			window.history.replaceState({}, '', url.toString())
 		},
+		onOverrideChange() {
+			delay(this.saveOverride, 800)()
+		},
+		async saveOverride() {
+			try {
+				await axios.put(generateUrl('/apps/integration_forgejo_gitea/config'), {
+					values: { override_user_name: this.overrideUserName.trim() },
+				})
+			} catch (e) {
+				showError(t('integration_forgejo_gitea', 'Failed to save username override.'))
+			}
+		},
 	},
 }
 </script>
@@ -189,6 +221,25 @@ export default {
 			.connected-icon {
 				color: var(--color-success);
 			}
+		}
+	}
+
+	.override {
+		margin-top: 24px;
+		padding-top: 16px;
+		border-top: 1px solid var(--color-border);
+		max-width: 480px;
+
+		label {
+			display: block;
+			margin-bottom: 6px;
+			font-weight: 500;
+		}
+
+		.settings-hint {
+			margin-top: 8px;
+			font-size: 12px;
+			line-height: 1.4;
 		}
 	}
 }

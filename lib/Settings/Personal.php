@@ -30,6 +30,7 @@ class Personal implements ISettings {
 			'oauth_instance_url' => $instanceUrl,
 			'instance_type_default' => $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo'),
 			'user_name' => $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name'),
+			'override_user_name' => $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'override_user_name'),
 		]);
 		return new TemplateResponse(Application::APP_ID, 'personalSettings');
 	}
