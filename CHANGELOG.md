@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-08-13
+
+### Fixed
+- Widgets showing stale data after the machine woke from sleep or the browser tab regained focus. The `useAutoRefresh` composable relied on `visibilitychange` alone, which does not fire on laptop wake when the tab was already the frontmost tab before sleep — leaving widgets frozen on the last pre-sleep snapshot until a manual reload. The composable now also listens for `window.focus` and `pageshow`, and tracks `lastFetchAt` so any wake signal triggers an immediate refetch when the data is older than a minute.
+
 ## [1.0.2] - 2026-08-13
 
 ### Fixed
@@ -76,7 +81,8 @@ First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 
 
 Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
 
-[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/njordium/integration_forgejo_gitea/releases/tag/v1.0.0
