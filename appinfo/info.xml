@@ -4,7 +4,7 @@
 	<name>Forgejo / Gitea integration</name>
 	<summary>Dashboard widgets and search for Forgejo and Gitea issues</summary>
 	<description><![CDATA[Integration with Forgejo and Gitea instances. Provides two dashboard widgets — Open Issues and Closed Issues — each with per-widget repository selection and filter (assigned / created / mentioned / all). Later releases add unified search, link previews and notifications.]]></description>
-	<version>0.0.1</version>
+	<version>0.0.2</version>
 	<licence>agpl</licence>
 	<author>Njordium</author>
 	<namespace>ForgejoGitea</namespace>
