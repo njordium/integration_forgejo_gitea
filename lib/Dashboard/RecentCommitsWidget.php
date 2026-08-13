@@ -27,8 +27,8 @@ class RecentCommitsWidget implements IWidget {
 	public function getTitle(): string {
 		$type = $this->config->getAppValue(Application::APP_ID, 'instance_type_default', 'forgejo');
 		return $type === 'gitea'
-			? $this->l10n->t('Gitea: Recent commits')
-			: $this->l10n->t('Forgejo: Recent commits');
+			? $this->l10n->t('Gitea: Commits')
+			: $this->l10n->t('Forgejo: Commits');
 	}
 
 	public function getOrder(): int {
