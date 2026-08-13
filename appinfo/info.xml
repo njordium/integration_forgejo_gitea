@@ -35,7 +35,7 @@ OAuth 2.0 authorization-code flow (RFC 6749) is the only connect path. 32-byte s
 ## Requirements
 
 Any recent Forgejo (v1.x, all v7+) or Gitea (v1.19+) instance with an OAuth application registered. PHP 8.1+, Nextcloud 30-34.]]></description>
-	<version>1.0.1</version>
+	<version>1.0.2</version>
 	<licence>AGPL-3.0-or-later</licence>
 	<author homepage="https://njordium.com">Kim Haverblad</author>
 	<namespace>ForgejoGitea</namespace>

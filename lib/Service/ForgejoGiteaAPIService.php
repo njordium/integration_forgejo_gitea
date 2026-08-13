@@ -191,7 +191,7 @@ class ForgejoGiteaAPIService {
 	 * All repositories the authenticated user can access — paginated,
 	 * bounded to a sane cap so we don't loop forever on huge accounts.
 	 *
-	 * @return array<int, array{full_name: string, name: string, owner: array}>
+	 * @return list<array<string, mixed>>
 	 */
 	public function getUserRepos(string $instanceUrl, string $accessToken, string $userId, int $maxPages = 5): array {
 		$out = [];

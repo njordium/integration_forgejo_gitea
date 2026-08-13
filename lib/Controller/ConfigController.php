@@ -75,7 +75,7 @@ class ConfigController extends Controller {
 					return new DataResponse(['error' => 'invalid_instance_url_scheme'], 400);
 				}
 				if (strtolower($parsed['scheme']) === 'http'
-					&& !$this->isLoopbackHost($parsed['host'] ?? '')) {
+					&& !$this->isLoopbackHost($parsed['host'])) {
 					$warnings[] = 'http_url_not_recommended';
 				}
 			}
