@@ -224,11 +224,16 @@ class ForgejoGiteaAPIController extends Controller {
 			return new DataResponse(['error' => 'not_connected'], Http::STATUS_UNAUTHORIZED);
 		}
 
-		$openAssignedIssues = $this->countSearch(['type' => 'issues', 'state' => 'open', 'assigned_by' => $user]);
-		$openCreatedIssues = $this->countSearch(['type' => 'issues', 'state' => 'open', 'created_by' => $user]);
-		$openAssignedPRs = $this->countSearch(['type' => 'pulls', 'state' => 'open', 'assigned_by' => $user]);
-		$openCreatedPRs = $this->countSearch(['type' => 'pulls', 'state' => 'open', 'created_by' => $user]);
-		$mentioned = $this->countSearch(['type' => 'issues', 'state' => 'open', 'mentioned_by' => $user]);
+		// /repos/issues/search takes BOOLEAN filters relative to the
+		// bearer-authenticated user, NOT username strings. Passing
+		// assigned_by=NAME etc. gets silently ignored — the endpoint then
+		// returns *all* open issues visible to the token, which is why
+		// every tile previously showed the same non-zero count.
+		$openAssignedIssues = $this->countSearch(['type' => 'issues', 'state' => 'open', 'assigned' => 'true']);
+		$openCreatedIssues = $this->countSearch(['type' => 'issues', 'state' => 'open', 'created' => 'true']);
+		$openAssignedPRs = $this->countSearch(['type' => 'pulls', 'state' => 'open', 'review_requested' => 'true']);
+		$openCreatedPRs = $this->countSearch(['type' => 'pulls', 'state' => 'open', 'created' => 'true']);
+		$mentioned = $this->countSearch(['type' => 'issues', 'state' => 'open', 'mentioned' => 'true']);
 
 		$heatmap = $this->api->getHeatmap($instanceUrl, $accessToken, $this->userId ?? '', $user);
 		$sevenDayAgo = time() - (7 * 86400);
