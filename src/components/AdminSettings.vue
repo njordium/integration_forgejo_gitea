@@ -50,7 +50,7 @@
 			<NcPasswordField
 				id="client_secret"
 				v-model="state.client_secret"
-				:placeholder="t('integration_forgejo_gitea', 'Secret of your OAuth application')"
+				:placeholder="clientSecretPlaceholder"
 				@input="onFieldChange" />
 
 			<label>
@@ -98,8 +98,16 @@ export default {
 			state: {
 				oauth_instance_url: initial.oauth_instance_url ?? '',
 				client_id: initial.client_id ?? '',
-				client_secret: initial.client_secret ?? '',
+				// Never seeded from the server — the initial-state payload
+				// only carries a client_secret_set boolean now. An empty
+				// string here means "leave stored secret unchanged on save."
+				client_secret: '',
 			},
+
+			// True when a secret is already stored server-side; drives the
+			// password-field placeholder so the admin sees this and does not
+			// mistake a blank field for "no secret configured".
+			clientSecretSet: !!initial.client_secret_set,
 
 			instanceType: initial.instance_type_default ?? 'forgejo',
 			instanceTypeOptions: [
@@ -121,6 +129,12 @@ export default {
 				? 'https://gitea.example.org'
 				: 'https://git.example.org'
 		},
+
+		clientSecretPlaceholder() {
+			return this.clientSecretSet
+				? t('integration_forgejo_gitea', 'Leave empty to keep the stored secret')
+				: t('integration_forgejo_gitea', 'Secret of your OAuth application')
+		},
 	},
 
 	methods: {
@@ -132,12 +146,26 @@ export default {
 			const payload = {
 				oauth_instance_url: (this.state.oauth_instance_url ?? '').replace(/\/+$/, ''),
 				client_id: this.state.client_id ?? '',
-				client_secret: this.state.client_secret ?? '',
 				instance_type_default: this.instanceType,
 			}
+			// Only send client_secret when the admin actually typed a new
+			// value — empty means "keep the stored one" (matches the field
+			// placeholder). Prevents overwriting an existing secret with
+			// blank on every unrelated save.
+			if ((this.state.client_secret ?? '') !== '') {
+				payload.client_secret = this.state.client_secret
+			}
 			try {
-				await axios.put(generateUrl('/apps/integration_forgejo_gitea/admin-config'), { values: payload })
-				showSuccess(t('integration_forgejo_gitea', 'Forgejo / Gitea admin settings saved'))
+				const { data } = await axios.put(generateUrl('/apps/integration_forgejo_gitea/admin-config'), { values: payload })
+				if (payload.client_secret !== undefined) {
+					this.clientSecretSet = true
+					this.state.client_secret = ''
+				}
+				if (Array.isArray(data?.warnings) && data.warnings.includes('users_reconnect_required')) {
+					showSuccess(t('integration_forgejo_gitea', 'Admin settings saved. All connected users have been signed out and must reconnect.'))
+				} else {
+					showSuccess(t('integration_forgejo_gitea', 'Forgejo / Gitea admin settings saved'))
+				}
 			} catch {
 				showError(t('integration_forgejo_gitea', 'Failed to save admin settings'))
 			}

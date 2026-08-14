@@ -597,13 +597,6 @@ class ForgejoGiteaAPIController extends Controller {
 	}
 
 	/**
-	 * @NoAdminRequired
-	 */
-	public function getForgejoGiteaAvatar(string $url = ''): DataResponse {
-		return new DataResponse(['avatar_url' => $url]);
-	}
-
-	/**
 	 * Config-key prefix for a widget's saved repos + filter. Keeps
 	 * backward compatibility for existing issues widgets (unsuffixed).
 	 */

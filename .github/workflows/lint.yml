@@ -35,6 +35,21 @@ jobs:
       - name: php -l
         run: find lib appinfo tests -name '*.php' -print0 | xargs -0 -n1 php -l
 
+  security-grep:
+    # Regression guard for the v1.0.0 A09 finding — Nextcloud's logger
+    # serialises the whole exception context (including the Authorization
+    # header) when `['exception' => $e]` is passed. Never reintroduce it.
+    name: Security grep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid ['exception' =>$e] in logger calls
+        run: |
+          if grep -rn --include='*.php' -E "\['exception'\s*=>\s*\\\$e\]" lib/; then
+            echo "::error::Found ['exception' => \$e] in a logger call — this leaks the request context (Authorization header, query params) into nextcloud.log. Log a redacted summary via redactSecrets() instead."
+            exit 1
+          fi
+
   php-test:
     name: PHPUnit
     runs-on: ubuntu-latest

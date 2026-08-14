@@ -42,7 +42,7 @@
 		<ul v-else class="fgw-list">
 			<li v-for="pr in visibleItems" :key="pr.id" class="fgw-item">
 				<a
-					:href="pr.html_url"
+					:href="safeHref(pr.html_url)"
 					target="_blank"
 					rel="noopener"
 					class="fgw-item__link">
@@ -140,6 +140,7 @@ import LabelChip from '../components/LabelChip.vue'
 import MaxItemsPicker from '../components/MaxItemsPicker.vue'
 import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
+import { safeHref } from '../utils.js'
 
 export default {
 	name: 'PendingReviewsWidget',
@@ -164,7 +165,7 @@ export default {
 		const bridge = { fetchLater: () => null }
 		const refresh = useAutoRefresh(() => bridge.fetchLater())
 		Object.assign(bridge, refresh)
-		return { autoRefresh: bridge }
+		return { autoRefresh: bridge, safeHref }
 	},
 
 	data() {

@@ -132,7 +132,7 @@ export default {
 					return
 				}
 				showError(t('integration_forgejo_gitea', 'Could not start OAuth flow.'))
-			} catch {
+			} catch (e) {
 				const msg = e?.response?.data?.error === 'admin_not_configured'
 					? t('integration_forgejo_gitea', 'Admin OAuth application not configured.')
 					: t('integration_forgejo_gitea', 'Could not start OAuth flow.')

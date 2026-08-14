@@ -81,7 +81,7 @@ class ForgejoGiteaAPIService {
 			$body = (string) $response->getBody();
 
 			if ($status === 401 && $userId !== '') {
-				return $this->retryAfterRefresh($instanceUrl, $userId, $endpoint, $params, $method);
+				return $this->retryAfterRefresh($instanceUrl, $userId, $accessToken, $endpoint, $params, $method);
 			}
 
 			if ($status >= 400) {
@@ -111,10 +111,22 @@ class ForgejoGiteaAPIService {
 	private function retryAfterRefresh(
 		string $instanceUrl,
 		string $userId,
+		string $staleAccessToken,
 		string $endpoint,
 		array $params,
 		string $method,
 	): array {
+		// TOCTOU guard: the dashboard fires 8+ widget requests in parallel.
+		// If the access token expired, all of them 401 and land here. Without
+		// this check every one would race to POST /login/oauth/access_token
+		// with the same refresh_token; Forgejo rotates refresh_tokens on use,
+		// so only the winner succeeds and the losers get invalid_grant and
+		// silently disconnect the user. Re-reading the current token first
+		// lets losers pick up the winner's fresh token instead of racing.
+		$currentAccess = $this->tokens->getAccessToken($userId);
+		if ($currentAccess !== '' && $currentAccess !== $staleAccessToken) {
+			return $this->request($instanceUrl, $currentAccess, $userId, $endpoint, $params, $method);
+		}
 		$refreshToken = $this->tokens->getRefreshToken($userId);
 		if ($refreshToken === '') {
 			return ['error' => 'unauthorized'];
@@ -134,7 +146,7 @@ class ForgejoGiteaAPIService {
 		if (isset($result['refresh_token'])) {
 			$this->tokens->setRefreshToken($userId, $result['refresh_token']);
 		}
-		return $this->request($instanceUrl, $result['access_token'], '', $endpoint, $params, $method);
+		return $this->request($instanceUrl, $result['access_token'], $userId, $endpoint, $params, $method);
 	}
 
 	/**
@@ -284,7 +296,7 @@ class ForgejoGiteaAPIService {
 			]);
 			$status = $response->getStatusCode();
 			if ($status === 401 && $userId !== '') {
-				if ($this->tryRefresh($userId, $instanceUrl)) {
+				if ($this->tryRefresh($userId, $instanceUrl, $accessToken)) {
 					return $this->countIssueSearch($instanceUrl, $this->tokens->getAccessToken($userId), $userId, $params);
 				}
 				return -1;
@@ -304,8 +316,18 @@ class ForgejoGiteaAPIService {
 	/**
 	 * Refresh the access token in place; returns true on success.
 	 * Extracted from retryAfterRefresh() so the count path can share it.
+	 *
+	 * $staleAccessToken is the token that just returned 401. If a concurrent
+	 * request already refreshed while we were queued, the stored access token
+	 * differs from the stale one — we return true immediately so the caller
+	 * re-reads the fresh token and retries with it, rather than racing to
+	 * refresh again (see retryAfterRefresh for the full rationale).
 	 */
-	private function tryRefresh(string $userId, string $instanceUrl): bool {
+	private function tryRefresh(string $userId, string $instanceUrl, string $staleAccessToken = ''): bool {
+		$currentAccess = $this->tokens->getAccessToken($userId);
+		if ($staleAccessToken !== '' && $currentAccess !== '' && $currentAccess !== $staleAccessToken) {
+			return true;
+		}
 		$refreshToken = $this->tokens->getRefreshToken($userId);
 		if ($refreshToken === '') {
 			return false;

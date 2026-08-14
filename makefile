@@ -64,6 +64,7 @@ appstore: clean
 	mkdir -p $(build_dir)
 	@rsync -a \
 	--exclude=.git \
+	--exclude=.DS_Store \
 	--exclude=appinfo/signature.json \
 	--exclude=*.swp \
 	--exclude=build \

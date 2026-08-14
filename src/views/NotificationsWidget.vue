@@ -34,7 +34,7 @@
 			<ul class="fgw-list">
 				<li v-for="item in visibleItems" :key="item.id" class="fgw-item">
 					<a
-						:href="item.html_url"
+						:href="safeHref(item.html_url)"
 						target="_blank"
 						rel="noopener"
 						class="fgw-item__link">
@@ -122,6 +122,7 @@ import SourcePullIcon from 'vue-material-design-icons/SourcePull.vue'
 import MaxItemsPicker from '../components/MaxItemsPicker.vue'
 import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
+import { safeHref } from '../utils.js'
 
 export default {
 	name: 'NotificationsWidget',
@@ -150,7 +151,7 @@ export default {
 		const bridge = { fetchLater: () => null }
 		const refresh = useAutoRefresh(() => bridge.fetchLater())
 		Object.assign(bridge, refresh)
-		return { autoRefresh: bridge }
+		return { autoRefresh: bridge, safeHref }
 	},
 
 	data() {

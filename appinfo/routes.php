@@ -24,6 +24,5 @@ return [
         ['name' => 'forgejoGiteaAPI#getNotifications', 'url' => '/notifications', 'verb' => 'GET'],
         ['name' => 'forgejoGiteaAPI#markNotificationRead', 'url' => '/notifications/{threadId}', 'verb' => 'PATCH'],
         ['name' => 'forgejoGiteaAPI#getForgejoGiteaUrl', 'url' => '/url', 'verb' => 'GET'],
-        ['name' => 'forgejoGiteaAPI#getForgejoGiteaAvatar', 'url' => '/avatar', 'verb' => 'GET'],
     ]
 ];

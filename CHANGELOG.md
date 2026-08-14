@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-14
+
+Full security-hardening pass driven by the OWASP Top 10 (2021) + adjacent-concerns audit. Ten findings, no Highs, all landed. See `SECURITY.md` for the full mapping; per-finding notes below.
+
+### Security — Medium
+
+- **F1 — `ConfigController::setConfig` now allowlists keys.** Previously any authenticated user could POST arbitrary user-scoped keys (including overwriting their own OAuth `token` / `refresh_token` with plaintext, or bloating `oc_preferences` with unbounded blobs). New `ALLOWED_USER_KEYS` exact list + `ALLOWED_USER_KEY_SUFFIXES` widget-key suffix list; unknown keys are silently dropped so older Vue bundles that still POST retired keys after an upgrade don't 400.
+- **F2 — TOCTOU race in the OAuth-refresh path fixed.** The dashboard fires 8+ widget requests in parallel; if the access token had expired, every one 401'd and raced to POST `/login/oauth/access_token` with the same `refresh_token`. Forgejo rotates refresh tokens on use → only the winner succeeded and the losers marked `refresh_failed` and disconnected the user. `retryAfterRefresh()` and `tryRefresh()` now take the stale access token, and if the stored token has changed since the 401 (another thread already refreshed) the request retries with the fresh token instead of re-refreshing.
+- **F3 — Admin URL/client-id rotation now invalidates all user tokens.** If an admin changed `oauth_instance_url` (or `client_id`) without clearing stored tokens, the next widget refresh sent every user's still-valid bearer to the new host. `setAdminConfig` now detects the change, clears `token` / `refresh_token` / `user_name` / `user_id` for every affected user, and returns a `users_reconnect_required` warning the frontend surfaces to the admin.
+
+### Security — Low
+
+- **F4 — `#[BruteForceProtection]` added to OAuth endpoints.** `oauthStart` and `oauthRedirect` now carry the attribute and `->throttle()` on invalid-state / token-exchange-failure branches, so retry storms against the callback path are rate-limited by Nextcloud's built-in bruteforce infrastructure.
+- **F5 — `safeHref()` helper wraps every `:href` bound to upstream data.** Vue 3 does NOT sanitize the scheme of a `:href` attribute; a compromised or malicious Forgejo returning `html_url: "javascript:…"` would otherwise execute on click. New `src/utils.js::safeHref()` returns the URL only when it parses as http(s), null otherwise. Wired into all 7 `:href="…html_url"` sites across `IssuesWidget`, `NotificationsWidget`, `MilestonesWidget`, `RecentCommitsWidget`, `PendingReviewsWidget`, `RepoStatsWidget`.
+- **F6 — Dead `/avatar` route removed.** `ForgejoGiteaAPIController::getForgejoGiteaAvatar()` echoed any `?url=` parameter and had no frontend consumer. Deleted along with its route entry so a future accidental "let's proxy avatars" implementation cannot silently turn into an SSRF / open-redirect.
+- **F7 — `client_secret` no longer re-serialised into the admin DOM.** `Admin::getForm` now provides `client_secret_set: bool` instead of the raw value; the admin field shows a "Leave empty to keep the stored secret" placeholder when set. Save only sends `client_secret` when the admin actually typed a new value.
+
+### Security — Info / hygiene
+
+- **F8 — CI regression guard against the v1.0.0 A09 pattern.** A new `security-grep` job in `.github/workflows/lint.yml` fails the build if `['exception' => $e]` reappears in a `logger->…` call under `lib/`. Prevents accidental reintroduction of the bearer-token-in-log leak that shipped in v0.0.x.
+- **F9 — `.DS_Store` added to the `make appstore` exclude list** so a stray macOS metadata file cannot ship in a release tarball.
+- **F10 — Bug fix: `catch { }` with unbound `e` in `PersonalSettings.vue:135`.** Would throw `ReferenceError` and mask the real OAuth-start failure. Now `catch (e) {`.
+
+### Changed
+
+- Bumped `@nextcloud/dialogs` (^7.4.1), `@nextcloud/vue` (^9.9.0), `@nextcloud/webpack-vue-config` (^7.0.4) — clears the runtime-reachable Dependabot alerts (dompurify, nanoid) reported against the older versions. Remaining audit findings are all build-time only (postcss transitive) and do not ship in the compiled bundle.
+
 ## [1.2.1] - 2026-08-14
 
 ### Changed
@@ -124,7 +151,8 @@ First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 
 
 Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
 
-[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.4...v1.2.0
 [1.1.4]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.3...v1.1.4

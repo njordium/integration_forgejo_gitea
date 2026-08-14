@@ -38,7 +38,7 @@
 		<ul v-else class="fgw-list">
 			<li v-for="r in visibleItems" :key="r.full_name" class="fgw-repo">
 				<a
-					:href="r.html_url"
+					:href="safeHref(r.html_url)"
 					target="_blank"
 					rel="noopener"
 					class="fgw-repo__link">
@@ -130,6 +130,7 @@ import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import MaxItemsPicker from '../components/MaxItemsPicker.vue'
 import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
+import { safeHref } from '../utils.js'
 
 export default {
 	name: 'RepoStatsWidget',
@@ -151,7 +152,7 @@ export default {
 		const bridge = { fetchLater: () => null }
 		const refresh = useAutoRefresh(() => bridge.fetchLater())
 		Object.assign(bridge, refresh)
-		return { autoRefresh: bridge }
+		return { autoRefresh: bridge, safeHref }
 	},
 
 	data() {

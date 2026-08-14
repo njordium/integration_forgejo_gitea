@@ -42,7 +42,7 @@
 		<ul v-else class="fgw-list">
 			<li v-for="m in visibleItems" :key="m.id" class="fgw-milestone">
 				<a
-					:href="m.html_url"
+					:href="safeHref(m.html_url)"
 					target="_blank"
 					rel="noopener"
 					class="fgw-milestone__link">
@@ -135,6 +135,7 @@ import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import MaxItemsPicker from '../components/MaxItemsPicker.vue'
 import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
+import { safeHref } from '../utils.js'
 
 export default {
 	name: 'MilestonesWidget',
@@ -157,7 +158,7 @@ export default {
 		const bridge = { fetchLater: () => null }
 		const refresh = useAutoRefresh(() => bridge.fetchLater())
 		Object.assign(bridge, refresh)
-		return { autoRefresh: bridge }
+		return { autoRefresh: bridge, safeHref }
 	},
 
 	data() {
