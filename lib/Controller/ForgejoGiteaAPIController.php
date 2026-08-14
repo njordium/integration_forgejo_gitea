@@ -229,16 +229,30 @@ class ForgejoGiteaAPIController extends Controller {
 		// assigned_by=NAME etc. gets silently ignored — the endpoint then
 		// returns *all* open issues visible to the token, which is why
 		// every tile previously showed the same non-zero count.
-		$openAssignedIssues = $this->countSearch(['type' => 'issues', 'state' => 'open', 'assigned' => 'true']);
-		$openCreatedIssues = $this->countSearch(['type' => 'issues', 'state' => 'open', 'created' => 'true']);
-		$openAssignedPRs = $this->countSearch(['type' => 'pulls', 'state' => 'open', 'review_requested' => 'true']);
-		$openCreatedPRs = $this->countSearch(['type' => 'pulls', 'state' => 'open', 'created' => 'true']);
-		$mentioned = $this->countSearch(['type' => 'issues', 'state' => 'open', 'mentioned' => 'true']);
+		$count = fn (array $q): int => max(0, $this->api->countIssueSearch(
+			$instanceUrl, $accessToken, $this->userId ?? '', $q,
+		));
+		$openAssignedIssues = $count(['type' => 'issues', 'state' => 'open', 'assigned' => 'true']);
+		$openCreatedIssues = $count(['type' => 'issues', 'state' => 'open', 'created' => 'true']);
+		$openAssignedPRs = $count(['type' => 'pulls', 'state' => 'open', 'review_requested' => 'true']);
+		$openCreatedPRs = $count(['type' => 'pulls', 'state' => 'open', 'created' => 'true']);
+		$mentioned = $count(['type' => 'issues', 'state' => 'open', 'mentioned' => 'true']);
 		// Instance-wide totals — no user filter, so /repos/issues/search returns
 		// every issue in every repo the bearer token can access, regardless of
-		// whether the connected user is assigned/creator/mentioner.
-		$totalOpenIssues = $this->countSearch(['type' => 'issues', 'state' => 'open']);
-		$totalClosedIssues = $this->countSearch(['type' => 'issues', 'state' => 'closed']);
+		// whether the connected user is assigned/creator/mentioner. Uses the
+		// X-Total-Count response header rather than counting rows in a capped
+		// page, so a repo with hundreds of closed issues renders the real
+		// number instead of the per-page ceiling.
+		$totalOpenIssues = $this->api->countIssueSearch(
+			$instanceUrl, $accessToken, $this->userId ?? '',
+			['type' => 'issues', 'state' => 'open'],
+		);
+		$totalClosedIssues = $this->api->countIssueSearch(
+			$instanceUrl, $accessToken, $this->userId ?? '',
+			['type' => 'issues', 'state' => 'closed'],
+		);
+		if ($totalOpenIssues < 0) { $totalOpenIssues = 0; }
+		if ($totalClosedIssues < 0) { $totalClosedIssues = 0; }
 
 		$heatmap = $this->api->getHeatmap($instanceUrl, $accessToken, $this->userId ?? '', $user);
 		$sevenDayAgo = time() - (7 * 86400);
@@ -615,16 +629,6 @@ class ForgejoGiteaAPIController extends Controller {
 		return $this->config->getUserValue($this->userId ?? '', Application::APP_ID, 'user_name');
 	}
 
-	/**
-	 * Count results from /repos/issues/search with the given filters, capping
-	 * at 50 (Forgejo's max limit per page) — 50+ is displayed as "50+".
-	 */
-	private function countSearch(array $params): int {
-		[$instanceUrl, $accessToken] = $this->credentials();
-		$params['limit'] = 50;
-		$rows = $this->api->searchAllIssues($instanceUrl, $accessToken, $this->userId ?? '', $params);
-		return is_array($rows) ? count($rows) : 0;
-	}
 
 	/**
 	 * @return array{0: string, 1: string} [instanceUrl, accessToken]

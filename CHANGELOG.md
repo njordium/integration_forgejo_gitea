@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-08-14
+
+### Fixed
+- Overview tile counts capped at 50 (Forgejo's max page size for `/repos/issues/search`). The old code counted rows in a single page, so a repo with hundreds of closed issues rendered as `50` instead of the real total. Added `ForgejoGiteaAPIService::countIssueSearch()` which reads the `X-Total-Count` response header from a `limit=1` request — one small HTTP call per tile, exact count regardless of size. All eight Overview tiles now use this path, so personal counts (assigned / created / mentioned / review-requested) also render the real value if they ever exceed 50.
+
 ## [1.1.1] - 2026-08-14
 
 ### Fixed
@@ -91,7 +96,8 @@ First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 
 
 Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
 
-[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.2...v1.0.3

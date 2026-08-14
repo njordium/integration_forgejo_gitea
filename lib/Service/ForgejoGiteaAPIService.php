@@ -254,6 +254,81 @@ class ForgejoGiteaAPIService {
 	}
 
 	/**
+	 * Total count for a /repos/issues/search query, read from the
+	 * X-Total-Count response header rather than counting rows in the
+	 * body — so we return the real total even when it exceeds the
+	 * page size. Uses limit=1 to keep the transfer tiny; only the
+	 * header matters for the count.
+	 *
+	 * Returns -1 on error so the caller can distinguish "0 real
+	 * matches" from "the request failed."
+	 */
+	public function countIssueSearch(
+		string $instanceUrl,
+		string $accessToken,
+		string $userId,
+		array $params = [],
+	): int {
+		try {
+			$params['limit'] = 1;
+			$params['page'] = 1;
+			$url = rtrim($instanceUrl, '/') . '/api/v1/repos/issues/search?' . http_build_query($params);
+			$response = $this->clientService->newClient()->get($url, [
+				'headers' => [
+					'Authorization' => 'Bearer ' . $accessToken,
+					'Accept' => 'application/json',
+					'User-Agent' => 'Nextcloud Forgejo/Gitea integration',
+				],
+				'timeout' => 30,
+				'http_errors' => false,
+			]);
+			$status = $response->getStatusCode();
+			if ($status === 401 && $userId !== '') {
+				if ($this->tryRefresh($userId, $instanceUrl)) {
+					return $this->countIssueSearch($instanceUrl, $this->tokens->getAccessToken($userId), $userId, $params);
+				}
+				return -1;
+			}
+			if ($status >= 400) {
+				return -1;
+			}
+			return (int) $response->getHeader('X-Total-Count');
+		} catch (Throwable $e) {
+			$this->logger->warning('Forgejo/Gitea countIssueSearch failed', [
+				'reason' => $this->redactSecrets($e->getMessage(), $accessToken),
+			]);
+			return -1;
+		}
+	}
+
+	/**
+	 * Refresh the access token in place; returns true on success.
+	 * Extracted from retryAfterRefresh() so the count path can share it.
+	 */
+	private function tryRefresh(string $userId, string $instanceUrl): bool {
+		$refreshToken = $this->tokens->getRefreshToken($userId);
+		if ($refreshToken === '') {
+			return false;
+		}
+		$clientId = $this->config->getAppValue(Application::APP_ID, 'client_id');
+		$clientSecret = $this->config->getAppValue(Application::APP_ID, 'client_secret');
+		$result = $this->requestOAuthAccessToken($instanceUrl, [
+			'grant_type' => 'refresh_token',
+			'refresh_token' => $refreshToken,
+			'client_id' => $clientId,
+			'client_secret' => $clientSecret,
+		]);
+		if (!isset($result['access_token'])) {
+			return false;
+		}
+		$this->tokens->setAccessToken($userId, (string) $result['access_token']);
+		if (isset($result['refresh_token'])) {
+			$this->tokens->setRefreshToken($userId, (string) $result['refresh_token']);
+		}
+		return true;
+	}
+
+	/**
 	 * Contribution heatmap for the given user. Returns
 	 * [{ timestamp: <unix>, contributions: N }, …].
 	 */
