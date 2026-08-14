@@ -234,6 +234,11 @@ class ForgejoGiteaAPIController extends Controller {
 		$openAssignedPRs = $this->countSearch(['type' => 'pulls', 'state' => 'open', 'review_requested' => 'true']);
 		$openCreatedPRs = $this->countSearch(['type' => 'pulls', 'state' => 'open', 'created' => 'true']);
 		$mentioned = $this->countSearch(['type' => 'issues', 'state' => 'open', 'mentioned' => 'true']);
+		// Instance-wide totals — no user filter, so /repos/issues/search returns
+		// every issue in every repo the bearer token can access, regardless of
+		// whether the connected user is assigned/creator/mentioner.
+		$totalOpenIssues = $this->countSearch(['type' => 'issues', 'state' => 'open']);
+		$totalClosedIssues = $this->countSearch(['type' => 'issues', 'state' => 'closed']);
 
 		$heatmap = $this->api->getHeatmap($instanceUrl, $accessToken, $this->userId ?? '', $user);
 		$sevenDayAgo = time() - (7 * 86400);
@@ -252,6 +257,8 @@ class ForgejoGiteaAPIController extends Controller {
 				['key' => 'open_created_prs', 'label' => 'Open PRs I opened', 'value' => $openCreatedPRs],
 				['key' => 'mentioned_open', 'label' => 'Open issues mentioning me', 'value' => $mentioned],
 				['key' => 'contributions_7d', 'label' => 'Contributions last 7 days', 'value' => $contribs7d],
+				['key' => 'total_open_issues', 'label' => 'Open issues (total)', 'value' => $totalOpenIssues],
+				['key' => 'total_closed_issues', 'label' => 'Closed issues (total)', 'value' => $totalClosedIssues],
 			],
 			'user_name' => $user,
 			'instance_url' => $instanceUrl,

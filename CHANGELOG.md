@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-14
+
+### Added
+- **Overview widget: two instance-wide total tiles.** "Open issues (total)" and "Closed issues (total)" join the existing six user-scoped KPIs, expanding the widget to an 8-tile 4×2 grid. Both are counted via `/repos/issues/search` with no user filter, so they reflect every issue in every repo the connected user's token can read — useful as a project-health snapshot alongside the personal work-queue counts. Tiles link to `/issues?state=open&type=your_repositories` (and the closed equivalent) on the configured instance.
+
 ## [1.0.3] - 2026-08-13
 
 ### Fixed
@@ -81,7 +86,8 @@ First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 
 
 Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
 
-[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.0...v1.0.1

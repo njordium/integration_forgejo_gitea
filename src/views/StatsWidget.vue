@@ -163,6 +163,10 @@ export default {
 					return `${this.instanceUrl}/issues?state=open&type=mentioned`
 				case 'contributions_7d':
 					return `${this.instanceUrl}/${encodeURIComponent(this.userName)}?tab=activity`
+				case 'total_open_issues':
+					return `${this.instanceUrl}/issues?state=open&type=your_repositories`
+				case 'total_closed_issues':
+					return `${this.instanceUrl}/issues?state=closed&type=your_repositories`
 				default:
 					return this.instanceUrl
 			}
