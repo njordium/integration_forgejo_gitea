@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-08-14
+
+### Changed
+- Brand icons (Forgejo horn, Gitea teacup) now pin to `background-size: 20px 20px` so the widget-header icon renders at the same visual weight as `integration_suitecrm`'s badge. Previously the SVG artwork stretched to `contain` inside the header slot and read as noticeably larger than the sibling app.
+
+### Added (server-side plumbing; no UI change yet)
+- Controller exposes a new per-widget `max_items` field on every list-widget response (issues, pulls, notifications, commits, milestones, repo_stats, reviews), validated against `ALLOWED_MAX_ITEMS = [5, 10, 15, 20, 25, 50]` with a default of 20. Vue widgets will start reading this in the next minor release to add a "Records to show" picker to the settings modal — this release lays the config plumbing without changing any user-visible behaviour.
+- `MAX_ITEMS_PER_WIDGET` and per-endpoint fetch limits raised to 50 so a future user-picked value of 50 is not clipped by the backend cap.
+
 ## [1.1.2] - 2026-08-14
 
 ### Fixed
@@ -96,7 +105,8 @@ First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 
 
 Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
 
-[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.3...v1.1.0

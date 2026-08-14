@@ -22,11 +22,13 @@ class ForgejoGiteaAPIController extends Controller {
 
 	private const FILTERS = ['assigned', 'created', 'mentioned', 'all'];
 	private const ITEM_TYPES = ['issues', 'pulls'];
-	private const MAX_ITEMS_PER_WIDGET = 30;
-	private const MAX_PER_REPO = 15;
-	private const NOTIFICATIONS_LIMIT = 20;
+	private const MAX_ITEMS_PER_WIDGET = 50;
+	private const MAX_PER_REPO = 50;
+	private const NOTIFICATIONS_LIMIT = 50;
 	private const DEFAULT_REFRESH_SECONDS = 300;
 	private const ALLOWED_REFRESH_SECONDS = [0, 30, 60, 300, 900, 1800, 3600];
+	private const DEFAULT_MAX_ITEMS = 20;
+	private const ALLOWED_MAX_ITEMS = [5, 10, 15, 20, 25, 50];
 
 	public function __construct(
 		string $appName,
@@ -111,7 +113,7 @@ class ForgejoGiteaAPIController extends Controller {
 		if (empty($repos)) {
 			return new DataResponse([
 				'items' => [],
-				'config' => ['repos' => [], 'filter' => $filter, 'refresh_interval_seconds' => $refreshInterval],
+				'config' => ['repos' => [], 'filter' => $filter, 'refresh_interval_seconds' => $refreshInterval, 'max_items' => $this->readMaxItems($configKeyPrefix)],
 				'instance_url' => $instanceUrl,
 			]);
 		}
@@ -164,7 +166,7 @@ class ForgejoGiteaAPIController extends Controller {
 
 		return new DataResponse([
 			'items' => $items,
-			'config' => ['repos' => $repos, 'filter' => $filter, 'refresh_interval_seconds' => $refreshInterval],
+			'config' => ['repos' => $repos, 'filter' => $filter, 'refresh_interval_seconds' => $refreshInterval, 'max_items' => $this->readMaxItems($configKeyPrefix)],
 			'instance_url' => $instanceUrl,
 		]);
 	}
@@ -315,6 +317,7 @@ class ForgejoGiteaAPIController extends Controller {
 			'items' => $items,
 			'instance_url' => $instanceUrl,
 			'refresh_interval_seconds' => $this->readRefreshInterval('notifications'),
+			'max_items' => $this->readMaxItems('notifications'),
 		]);
 	}
 
@@ -390,7 +393,7 @@ class ForgejoGiteaAPIController extends Controller {
 
 		return new DataResponse([
 			'items' => $items,
-			'config' => ['repos' => $repos, 'only_mine' => $onlyMine, 'refresh_interval_seconds' => $this->readRefreshInterval('commits')],
+			'config' => ['repos' => $repos, 'only_mine' => $onlyMine, 'refresh_interval_seconds' => $this->readRefreshInterval('commits'), 'max_items' => $this->readMaxItems('commits')],
 			'instance_url' => $instanceUrl,
 		]);
 	}
@@ -412,7 +415,7 @@ class ForgejoGiteaAPIController extends Controller {
 		if (empty($repos)) {
 			return new DataResponse([
 				'items' => [],
-				'config' => ['repos' => [], 'refresh_interval_seconds' => $milestonesRefresh],
+				'config' => ['repos' => [], 'refresh_interval_seconds' => $milestonesRefresh, 'max_items' => $this->readMaxItems('milestones')],
 				'instance_url' => $instanceUrl,
 			]);
 		}
@@ -453,7 +456,7 @@ class ForgejoGiteaAPIController extends Controller {
 
 		return new DataResponse([
 			'items' => $items,
-			'config' => ['repos' => $repos, 'refresh_interval_seconds' => $milestonesRefresh],
+			'config' => ['repos' => $repos, 'refresh_interval_seconds' => $milestonesRefresh, 'max_items' => $this->readMaxItems('milestones')],
 			'instance_url' => $instanceUrl,
 		]);
 	}
@@ -475,7 +478,7 @@ class ForgejoGiteaAPIController extends Controller {
 		if (empty($repos)) {
 			return new DataResponse([
 				'items' => [],
-				'config' => ['repos' => [], 'refresh_interval_seconds' => $repoStatsRefresh],
+				'config' => ['repos' => [], 'refresh_interval_seconds' => $repoStatsRefresh, 'max_items' => $this->readMaxItems('repo_stats')],
 				'instance_url' => $instanceUrl,
 			]);
 		}
@@ -512,7 +515,7 @@ class ForgejoGiteaAPIController extends Controller {
 
 		return new DataResponse([
 			'items' => $items,
-			'config' => ['repos' => $repos, 'refresh_interval_seconds' => $repoStatsRefresh],
+			'config' => ['repos' => $repos, 'refresh_interval_seconds' => $repoStatsRefresh, 'max_items' => $this->readMaxItems('repo_stats')],
 			'instance_url' => $instanceUrl,
 		]);
 	}
@@ -536,7 +539,7 @@ class ForgejoGiteaAPIController extends Controller {
 		if (empty($repos) || $userName === '') {
 			return new DataResponse([
 				'items' => [],
-				'config' => ['repos' => $repos, 'refresh_interval_seconds' => $reviewsRefresh],
+				'config' => ['repos' => $repos, 'refresh_interval_seconds' => $reviewsRefresh, 'max_items' => $this->readMaxItems('reviews')],
 				'instance_url' => $instanceUrl,
 			]);
 		}
@@ -588,7 +591,7 @@ class ForgejoGiteaAPIController extends Controller {
 
 		return new DataResponse([
 			'items' => $items,
-			'config' => ['repos' => $repos, 'refresh_interval_seconds' => $reviewsRefresh],
+			'config' => ['repos' => $repos, 'refresh_interval_seconds' => $reviewsRefresh, 'max_items' => $this->readMaxItems('reviews')],
 			'instance_url' => $instanceUrl,
 		]);
 	}
@@ -649,5 +652,17 @@ class ForgejoGiteaAPIController extends Controller {
 		$raw = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, $configKey, (string) self::DEFAULT_REFRESH_SECONDS);
 		$seconds = (int) $raw;
 		return in_array($seconds, self::ALLOWED_REFRESH_SECONDS, true) ? $seconds : self::DEFAULT_REFRESH_SECONDS;
+	}
+
+	/**
+	 * Per-widget "records to show" value the user picked in the settings
+	 * modal. Validated against ALLOWED_MAX_ITEMS; falls back to
+	 * DEFAULT_MAX_ITEMS on unset / invalid values.
+	 */
+	private function readMaxItems(string $widgetKey): int {
+		$configKey = $widgetKey . '_max_items';
+		$raw = $this->config->getUserValue($this->userId ?? '', Application::APP_ID, $configKey, (string) self::DEFAULT_MAX_ITEMS);
+		$n = (int) $raw;
+		return in_array($n, self::ALLOWED_MAX_ITEMS, true) ? $n : self::DEFAULT_MAX_ITEMS;
 	}
 }

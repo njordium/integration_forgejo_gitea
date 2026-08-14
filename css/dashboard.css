@@ -15,16 +15,25 @@ body.theme--dark .icon-forgejo_gitea {
 	background-image: url('./../img/app-dark.svg');
 }
 
+/*
+ * Brand icons. Pin background-size to 20px so the SVG artwork does not
+ * fill the entire widget-header icon slot — leaves the same optical
+ * weight as integration_suitecrm's badge (which relies on Nextcloud's
+ * default sizing). Without this the horn and teacup SVGs render at
+ * ~28px because their intrinsic aspect ratios push background:contain
+ * past what the surrounding layout expects.
+ */
 .icon-forgejo_gitea-forgejo {
 	background-image: url('./../img/forgejo.svg');
-	background-size: contain;
+	background-size: 20px 20px;
 	background-repeat: no-repeat;
 	background-position: center;
 }
 
 .icon-forgejo_gitea-gitea {
 	background-image: url('./../img/gitea.svg');
-	background-size: contain;
+	background-size: 20px 20px;
 	background-repeat: no-repeat;
 	background-position: center;
 }
+
