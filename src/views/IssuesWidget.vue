@@ -41,7 +41,8 @@
 		</div>
 
 		<div v-else-if="!items.length" class="fgw-status">
-			{{ emptyLabel }}
+			<CheckCircleOutlineIcon :size="40" class="fgw-status__icon" />
+			<span>{{ emptyLabel }}</span>
 		</div>
 
 		<template v-else>
@@ -170,6 +171,7 @@ import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwit
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import CheckCircleOutlineIcon from 'vue-material-design-icons/CheckCircleOutline.vue'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
 import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
@@ -197,6 +199,7 @@ export default {
 		NcLoadingIcon,
 		NcModal,
 		NcSelect,
+		CheckCircleOutlineIcon,
 		CogIcon,
 		RefreshIcon,
 		ContentSaveIcon,
@@ -429,11 +432,17 @@ export default {
 
 .fgw-status {
 	display: flex;
+	flex-direction: column;
 	align-items: center;
-	gap: 8px;
-	padding: 12px 4px;
+	justify-content: center;
+	gap: 12px;
+	padding: 24px 4px;
 	color: var(--color-text-maxcontrast);
-	flex-wrap: wrap;
+	text-align: center;
+}
+
+.fgw-status__icon {
+	opacity: 0.5;
 }
 
 .fgw-error {

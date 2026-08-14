@@ -36,7 +36,8 @@
 			</NcButton>
 		</div>
 		<div v-else-if="!items.length" class="fgw-status">
-			{{ t('integration_forgejo_gitea', 'No open milestones.') }}
+			<CheckCircleOutlineIcon :size="40" class="fgw-status__icon" />
+			<span>{{ t('integration_forgejo_gitea', 'No open milestones.') }}</span>
 		</div>
 		<ul v-else class="fgw-list">
 			<li v-for="m in visibleItems" :key="m.id" class="fgw-milestone">
@@ -127,6 +128,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import CheckCircleOutlineIcon from 'vue-material-design-icons/CheckCircleOutline.vue'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
 import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
@@ -143,6 +145,7 @@ export default {
 		NcLoadingIcon,
 		NcModal,
 		NcSelect,
+		CheckCircleOutlineIcon,
 		CogIcon,
 		RefreshIcon,
 		ContentSaveIcon,
@@ -279,7 +282,9 @@ export default {
 	min-height: 32px; margin-top: -8px; margin-bottom: -4px;
 }
 
-.fgw-status { display: flex; align-items: center; gap: 8px; padding: 12px 4px; color: var(--color-text-maxcontrast); flex-wrap: wrap; }
+.fgw-status { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px 4px; color: var(--color-text-maxcontrast); text-align: center; }
+
+.fgw-status__icon { opacity: 0.5; }
 
 .fgw-error { color: var(--color-error); }
 

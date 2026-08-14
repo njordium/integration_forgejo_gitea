@@ -269,7 +269,9 @@ export default {
 	min-height: 32px; margin-top: -8px; margin-bottom: -4px;
 }
 
-.fgw-status { display: flex; align-items: center; gap: 8px; padding: 12px 4px; color: var(--color-text-maxcontrast); flex-wrap: wrap; }
+.fgw-status { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px 4px; color: var(--color-text-maxcontrast); text-align: center; }
+
+.fgw-status__icon { opacity: 0.5; }
 
 .fgw-error { color: var(--color-error); }
 

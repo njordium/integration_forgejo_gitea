@@ -37,9 +37,10 @@
 			</NcButton>
 		</div>
 		<div v-else-if="!items.length" class="fgw-status">
-			{{ config.only_mine
+			<CheckCircleOutlineIcon :size="40" class="fgw-status__icon" />
+			<span>{{ config.only_mine
 				? t('integration_forgejo_gitea', 'No commits by you in the selected repos.')
-				: t('integration_forgejo_gitea', 'No recent commits in the selected repos.') }}
+				: t('integration_forgejo_gitea', 'No recent commits in the selected repos.') }}</span>
 		</div>
 		<ul v-else class="fgw-list">
 			<li v-for="c in visibleItems" :key="c.sha_full" class="fgw-item">
@@ -136,6 +137,7 @@ import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwit
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import CheckCircleOutlineIcon from 'vue-material-design-icons/CheckCircleOutline.vue'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
 import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
@@ -154,6 +156,7 @@ export default {
 		NcLoadingIcon,
 		NcModal,
 		NcSelect,
+		CheckCircleOutlineIcon,
 		CogIcon,
 		RefreshIcon,
 		ContentSaveIcon,
@@ -301,12 +304,16 @@ export default {
 
 .fgw-status {
 	display: flex;
+	flex-direction: column;
 	align-items: center;
-	gap: 8px;
-	padding: 12px 4px;
+	justify-content: center;
+	gap: 12px;
+	padding: 24px 4px;
 	color: var(--color-text-maxcontrast);
-	flex-wrap: wrap;
+	text-align: center;
 }
+
+.fgw-status__icon { opacity: 0.5; }
 
 .fgw-error { color: var(--color-error); }
 

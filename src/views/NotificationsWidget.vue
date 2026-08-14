@@ -27,7 +27,8 @@
 			{{ error }}
 		</div>
 		<div v-else-if="!items.length" class="fgw-status">
-			{{ t('integration_forgejo_gitea', 'You are up to date — no unread notifications.') }}
+			<CheckCircleOutlineIcon :size="40" class="fgw-status__icon" />
+			<span>{{ t('integration_forgejo_gitea', 'You are up to date — no unread notifications.') }}</span>
 		</div>
 		<template v-else>
 			<ul class="fgw-list">
@@ -110,6 +111,7 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import AlertCircleIcon from 'vue-material-design-icons/AlertCircle.vue'
 import BellIcon from 'vue-material-design-icons/Bell.vue'
 import CheckIcon from 'vue-material-design-icons/Check.vue'
+import CheckCircleOutlineIcon from 'vue-material-design-icons/CheckCircleOutline.vue'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
 import FolderIcon from 'vue-material-design-icons/Folder.vue'
@@ -130,6 +132,7 @@ export default {
 		NcLoadingIcon,
 		NcModal,
 		RefreshIcon,
+		CheckCircleOutlineIcon,
 		CogIcon,
 		ContentSaveIcon,
 		CheckIcon,
@@ -289,11 +292,16 @@ export default {
 
 .fgw-status {
 	display: flex;
+	flex-direction: column;
 	align-items: center;
-	gap: 8px;
-	padding: 12px 4px;
+	justify-content: center;
+	gap: 12px;
+	padding: 24px 4px;
 	color: var(--color-text-maxcontrast);
+	text-align: center;
 }
+
+.fgw-status__icon { opacity: 0.5; }
 
 .fgw-error { color: var(--color-error); }
 

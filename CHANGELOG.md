@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-08-14
+
+### Changed
+- Empty-state and status blocks (loading / not-connected / error / empty) across all six list widgets now render centered vertically inside the card with a 40px `CheckCircleOutlineIcon` above the message at 0.5 opacity. Mirrors integration_suitecrm's `.scw-status` treatment so "No pending reviews. Nice." and its siblings land visually consistent between the two apps. Previously status text sat left-aligned at the top of the widget, which read as an error more than a positive empty state.
+
 ## [1.2.0] - 2026-08-14
 
 ### Added
@@ -119,7 +124,8 @@ First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 
 
 Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
 
-[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.4...v1.2.0
 [1.1.4]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.2...v1.1.3
