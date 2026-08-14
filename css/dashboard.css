@@ -22,17 +22,24 @@ body.theme--dark .icon-forgejo_gitea {
  * default sizing). Without this the horn and teacup SVGs render at
  * ~28px because their intrinsic aspect ratios push background:contain
  * past what the surrounding layout expects.
+ *
+ * !important on the background-size rule: Nextcloud's own dashboard
+ * CSS applies `background-size: contain` on the widget-header icon
+ * slot with equal specificity and a later cascade origin, so a plain
+ * declaration here loses the tie-break. We can't refactor NC's
+ * dashboard CSS, so we out-cascade it. The image URL and position
+ * are unique to our selectors and don't need the override.
  */
 .icon-forgejo_gitea-forgejo {
 	background-image: url('./../img/forgejo.svg');
-	background-size: 20px 20px;
+	background-size: 20px 20px !important;
 	background-repeat: no-repeat;
 	background-position: center;
 }
 
 .icon-forgejo_gitea-gitea {
 	background-image: url('./../img/gitea.svg');
-	background-size: 20px 20px;
+	background-size: 20px 20px !important;
 	background-repeat: no-repeat;
 	background-position: center;
 }

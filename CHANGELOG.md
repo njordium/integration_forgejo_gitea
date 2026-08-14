@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-08-14
+
+### Fixed
+- Brand-icon `background-size: 20px 20px` rule from v1.1.3 was being outweighed by Nextcloud's own dashboard-widget-header CSS which pins `background-size: contain` on the icon slot with an equal-specificity, later-cascade origin. Added `!important` on our declaration so the intended optical size wins. Verified live in a private Firefox window post-deploy.
+
 ## [1.1.3] - 2026-08-14
 
 ### Changed
@@ -105,7 +110,8 @@ First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 
 
 Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
 
-[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.4...HEAD
+[1.1.4]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.0...v1.1.1
