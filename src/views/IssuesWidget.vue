@@ -106,6 +106,11 @@
 				</section>
 
 				<section class="fgw-modal__section">
+					<h4>{{ t('integration_forgejo_gitea', 'Records to show') }}</h4>
+					<MaxItemsPicker v-model="draftMaxItems" />
+				</section>
+
+				<section class="fgw-modal__section">
 					<h4>{{ t('integration_forgejo_gitea', 'Repositories') }}</h4>
 					<div v-if="reposLoading" class="fgw-status">
 						<NcLoadingIcon :size="20" />
@@ -171,10 +176,9 @@ import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
 import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import Avatar from '../components/ItemAvatar.vue'
 import LabelChip from '../components/LabelChip.vue'
+import MaxItemsPicker from '../components/MaxItemsPicker.vue'
 import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
-
-const MAX_VISIBLE_ITEMS = 4
 
 const FILTERS = [
 	{ value: 'assigned', labelKey: 'Assigned to me' },
@@ -199,6 +203,7 @@ export default {
 		OpenInNewIcon,
 		Avatar,
 		LabelChip,
+		MaxItemsPicker,
 		RefreshIntervalPicker,
 	},
 
@@ -234,6 +239,8 @@ export default {
 			showSettings: false,
 			draftRepos: [],
 			draftFilter: 'assigned',
+			draftMaxItems: 20,
+			maxItems: 20,
 			allRepos: [],
 			reposLoading: false,
 			saving: false,
@@ -281,7 +288,7 @@ export default {
 		},
 
 		visibleItems() {
-			return this.items.slice(0, MAX_VISIBLE_ITEMS)
+			return this.items.slice(0, this.maxItems)
 		},
 
 		showMoreLink() {
@@ -318,6 +325,7 @@ export default {
 				this.items = response.data.items || []
 				this.config = response.data.config || { repos: [], filter: 'assigned' }
 				this.instanceUrl = response.data.instance_url || ''
+				this.maxItems = Number(this.config.max_items ?? 20)
 				const newInterval = Number(this.config.refresh_interval_seconds ?? 300)
 				if (newInterval !== this.refreshIntervalSeconds) {
 					this.refreshIntervalSeconds = newInterval
@@ -342,6 +350,7 @@ export default {
 			this.draftRepos = [...this.config.repos]
 			this.draftFilter = this.config.filter
 			this.draftRefreshSeconds = this.refreshIntervalSeconds
+			this.draftMaxItems = this.maxItems
 			this.showSettings = true
 			await this.fetchRepos()
 		},
@@ -377,6 +386,7 @@ export default {
 					[keyPrefix + '_repos']: this.draftRepos,
 					[keyPrefix + '_filter']: this.draftFilter,
 					[refreshKey]: String(this.draftRefreshSeconds),
+					[keyPrefix + '_max_items']: String(this.draftMaxItems),
 				}
 				await axios.put(generateUrl('/apps/integration_forgejo_gitea/config'), { values })
 				this.showSettings = false
@@ -437,6 +447,8 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
+	max-height: 320px;
+	overflow-y: auto;
 }
 
 .fgw-item {

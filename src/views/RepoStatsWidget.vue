@@ -66,6 +66,10 @@
 					<RefreshIntervalPicker v-model="draftRefreshSeconds" />
 				</section>
 				<section class="fgw-modal__section">
+					<h4>{{ t('integration_forgejo_gitea', 'Records to show') }}</h4>
+					<MaxItemsPicker v-model="draftMaxItems" />
+				</section>
+				<section class="fgw-modal__section">
 					<h4>{{ t('integration_forgejo_gitea', 'Repositories') }}</h4>
 					<div v-if="reposLoading" class="fgw-status">
 						<NcLoadingIcon :size="20" />
@@ -123,10 +127,9 @@ import NcSelect from '@nextcloud/vue/components/NcSelect'
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 import ContentSaveIcon from 'vue-material-design-icons/ContentSave.vue'
 import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
+import MaxItemsPicker from '../components/MaxItemsPicker.vue'
 import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
-
-const MAX_VISIBLE = 5
 
 export default {
 	name: 'RepoStatsWidget',
@@ -140,6 +143,7 @@ export default {
 		CogIcon,
 		RefreshIcon,
 		ContentSaveIcon,
+		MaxItemsPicker,
 		RefreshIntervalPicker,
 	},
 
@@ -162,6 +166,8 @@ export default {
 			draftRepos: [],
 			draftRefreshSeconds: 300,
 			refreshIntervalSeconds: 300,
+			draftMaxItems: 20,
+			maxItems: 20,
 			allRepos: [],
 			reposLoading: false,
 			saving: false,
@@ -169,7 +175,7 @@ export default {
 	},
 
 	computed: {
-		visibleItems() { return this.items.slice(0, MAX_VISIBLE) },
+		visibleItems() { return this.items.slice(0, this.maxItems) },
 		repoOptions() { return this.allRepos.map((r) => ({ label: r.full_name, value: r.full_name })) },
 	},
 
@@ -188,6 +194,7 @@ export default {
 				this.items = r.data.items || []
 				this.config = r.data.config || { repos: [] }
 				this.instanceUrl = r.data.instance_url || ''
+				this.maxItems = Number(this.config.max_items ?? 20)
 				const newInterval = Number(this.config.refresh_interval_seconds ?? 300)
 				if (newInterval !== this.refreshIntervalSeconds) {
 					this.refreshIntervalSeconds = newInterval
@@ -208,6 +215,7 @@ export default {
 		async openSettings() {
 			this.draftRepos = [...this.config.repos]
 			this.draftRefreshSeconds = this.refreshIntervalSeconds
+			this.draftMaxItems = this.maxItems
 			this.showSettings = true
 			await this.fetchRepos()
 		},
@@ -232,6 +240,7 @@ export default {
 					values: {
 						repo_stats_widget_repos: this.draftRepos,
 						repo_stats_refresh_seconds: String(this.draftRefreshSeconds),
+						repo_stats_max_items: String(this.draftMaxItems),
 					},
 				})
 				this.showSettings = false
@@ -264,7 +273,7 @@ export default {
 
 .fgw-error { color: var(--color-error); }
 
-.fgw-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.fgw-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
 
 .fgw-repo {
 	background: var(--color-background-hover);

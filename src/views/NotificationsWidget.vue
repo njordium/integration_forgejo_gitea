@@ -74,6 +74,11 @@
 						<h4>{{ t('integration_forgejo_gitea', 'Refresh frequency') }}</h4>
 						<RefreshIntervalPicker v-model="draftRefreshSeconds" />
 					</section>
+
+					<section class="fgw-modal__section">
+						<h4>{{ t('integration_forgejo_gitea', 'Records to show') }}</h4>
+						<MaxItemsPicker v-model="draftMaxItems" />
+					</section>
 					<div class="fgw-modal__actions">
 						<NcButton @click="closeSettings">
 							{{ t('integration_forgejo_gitea', 'Cancel') }}
@@ -112,10 +117,9 @@ import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
 import RefreshIcon from 'vue-material-design-icons/Refresh.vue'
 import SourceCommitIcon from 'vue-material-design-icons/SourceCommit.vue'
 import SourcePullIcon from 'vue-material-design-icons/SourcePull.vue'
+import MaxItemsPicker from '../components/MaxItemsPicker.vue'
 import RefreshIntervalPicker from '../components/RefreshIntervalPicker.vue'
 import { useAutoRefresh } from '../composables/useAutoRefresh.js'
-
-const MAX_VISIBLE_ITEMS = 4
 
 export default {
 	name: 'NotificationsWidget',
@@ -129,6 +133,7 @@ export default {
 		CogIcon,
 		ContentSaveIcon,
 		CheckIcon,
+		MaxItemsPicker,
 		RefreshIntervalPicker,
 		AlertCircleIcon,
 		SourcePullIcon,
@@ -155,17 +160,19 @@ export default {
 			showSettings: false,
 			draftRefreshSeconds: 300,
 			refreshIntervalSeconds: 300,
+			draftMaxItems: 20,
+			maxItems: 20,
 			saving: false,
 		}
 	},
 
 	computed: {
 		visibleItems() {
-			return this.items.slice(0, MAX_VISIBLE_ITEMS)
+			return this.items.slice(0, this.maxItems)
 		},
 
 		hiddenCount() {
-			return Math.max(0, this.items.length - MAX_VISIBLE_ITEMS)
+			return Math.max(0, this.items.length - this.maxItems)
 		},
 
 		notificationsUrl() {
@@ -187,6 +194,7 @@ export default {
 				const response = await axios.get(generateUrl('/apps/integration_forgejo_gitea/notifications'))
 				this.items = response.data.items || []
 				this.instanceUrl = response.data.instance_url || ''
+				this.maxItems = Number(response.data.max_items ?? 20)
 				const newInterval = Number(response.data.refresh_interval_seconds ?? 300)
 				if (newInterval !== this.refreshIntervalSeconds) {
 					this.refreshIntervalSeconds = newInterval
@@ -205,6 +213,7 @@ export default {
 
 		openSettings() {
 			this.draftRefreshSeconds = this.refreshIntervalSeconds
+			this.draftMaxItems = this.maxItems
 			this.showSettings = true
 		},
 
@@ -216,7 +225,10 @@ export default {
 			this.saving = true
 			try {
 				await axios.put(generateUrl('/apps/integration_forgejo_gitea/config'), {
-					values: { notifications_refresh_seconds: String(this.draftRefreshSeconds) },
+					values: {
+						notifications_refresh_seconds: String(this.draftRefreshSeconds),
+						notifications_max_items: String(this.draftMaxItems),
+					},
 				})
 				this.showSettings = false
 				showSuccess(t('integration_forgejo_gitea', 'Widget settings saved.'))
@@ -292,6 +304,8 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
+	max-height: 320px;
+	overflow-y: auto;
 }
 
 .fgw-item {
