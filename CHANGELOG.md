@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-14
+
+### Fixed
+- Overview widget: KPI tiles no longer cap the display at `50+`. The cap was fine for single-digit personal counts but hid the actual value on the new instance-wide total tiles (Open issues / Closed issues), where the number IS the point. Tiles now render the exact count.
+
 ## [1.1.0] - 2026-08-14
 
 ### Added
@@ -86,7 +91,8 @@ First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 
 
 Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
 
-[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.0.1...v1.0.2

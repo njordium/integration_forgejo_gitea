@@ -173,8 +173,7 @@ export default {
 		},
 
 		formatValue(v) {
-			if (v >= 50) { return '50+' }
-			return String(v)
+			return String(v ?? 0)
 		},
 
 		openSettings() {
