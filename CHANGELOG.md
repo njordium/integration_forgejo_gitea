@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-08-21
+
+### Fixed
+- Widget repo pickers now list every repo the token can read, not just owned ones — switched `getUserRepos()` from `/user/repos` to `/repos/search`.
+
 ## [1.3.2] - 2026-08-21
 
 ### Fixed
@@ -161,7 +166,8 @@ First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 
 
 Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
 
-[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.2...HEAD
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.3...HEAD
+[1.3.3]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.2.1...v1.3.0

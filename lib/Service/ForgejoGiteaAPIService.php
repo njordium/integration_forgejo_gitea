@@ -203,20 +203,35 @@ class ForgejoGiteaAPIService {
 	 * All repositories the authenticated user can access — paginated,
 	 * bounded to a sane cap so we don't loop forever on huge accounts.
 	 *
+	 * Uses /repos/search (not /user/repos) because /user/repos only lists
+	 * repositories the user OWNS. When a user reads issues across an org
+	 * they belong to via team/collaborator membership (typical for the
+	 * dashboard use case), /user/repos returns empty and every widget's
+	 * repo picker shows "No repositories accessible with the current
+	 * token." — even though /repos/issues/search returns hundreds of
+	 * matches for the same token. /repos/search returns everything the
+	 * token can read regardless of how access is granted.
+	 *
 	 * @return list<array<string, mixed>>
 	 */
 	public function getUserRepos(string $instanceUrl, string $accessToken, string $userId, int $maxPages = 5): array {
 		$out = [];
 		for ($page = 1; $page <= $maxPages; $page++) {
-			$batch = $this->request($instanceUrl, $accessToken, $userId, 'user/repos', [
+			$response = $this->request($instanceUrl, $accessToken, $userId, 'repos/search', [
 				'page' => $page,
 				'limit' => 50,
 			]);
-			if (isset($batch['error']) || !is_array($batch) || empty($batch)) {
+			if (isset($response['error']) || !is_array($response)) {
+				break;
+			}
+			// /repos/search wraps results in {ok: true, data: [...]}; guard
+			// against both wrappings in case Forgejo/Gitea versions differ.
+			$batch = isset($response['data']) && is_array($response['data']) ? $response['data'] : $response;
+			if (empty($batch)) {
 				break;
 			}
 			foreach ($batch as $repo) {
-				if (isset($repo['full_name'])) {
+				if (is_array($repo) && isset($repo['full_name'])) {
 					$out[] = $repo;
 				}
 			}
