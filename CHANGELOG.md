@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-08-21
+
+### Fixed
+- **Release tarball no longer includes a `pax_global_header` entry that PEAR's `Archive_Tar` mishandles.** The v1.3.1 tarball built via `git archive --format=tar` had a `pax_global_header` as its first entry (git stores the commit id there). PEAR's tar reader (used by Nextcloud's `\OC\Installer`) silently produced a partial extract, and the client-side install failed with `Extracted app integration_forgejo_gitea has more than 1 folder`. Release tarballs are now built by extracting `git archive` output into a staging dir and re-packing with plain BSD `tar` (no pax extensions), matching the shape `integration_suitecrm` uses.
+
 ## [1.3.1] - 2026-08-19
 
 ### Fixed
@@ -156,7 +161,8 @@ First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 
 
 Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
 
-[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.2.0...v1.2.1
