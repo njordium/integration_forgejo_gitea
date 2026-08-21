@@ -3,7 +3,7 @@
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
 	<id>integration_forgejo_gitea</id>
 	<name>Forgejo / Gitea integration</name>
-	<summary>Eleven dashboard widgets for Forgejo and Gitea. Issues, pull requests, reviews, commits, milestones, repo stats, notifications and a contribution heatmap.</summary>
+	<summary>Eleven dashboard widgets for Forgejo and Gitea: issues, PRs, reviews, commits, milestones, repo stats, notifications, heatmap.</summary>
 	<description><![CDATA[Bring the parts of Forgejo or Gitea that people actually check ten times a day into the Nextcloud dashboard. Signs in once with OAuth 2.0 authorization-code grant against your Forgejo or Gitea instance and then keeps the two systems talking in the background.
 
 ## Dashboard widgets
@@ -35,7 +35,7 @@ OAuth 2.0 authorization-code flow (RFC 6749) is the only connect path. 32-byte s
 ## Requirements
 
 Any recent Forgejo (v1.x, all v7+) or Gitea (v1.19+) instance with an OAuth application registered. PHP 8.1+, Nextcloud 30-34.]]></description>
-	<version>1.3.0</version>
+	<version>1.3.1</version>
 	<licence>AGPL-3.0-or-later</licence>
 	<author homepage="https://njordium.com">Kim Haverblad</author>
 	<namespace>ForgejoGitea</namespace>

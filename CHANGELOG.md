@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-08-19
+
+### Fixed
+- `appinfo/info.xml` `<summary>` shortened from 154 to 126 characters. The App Store validator caps `<summary>` at 128 chars via `apps/info.xsd`; the v1.3.0 upload was rejected with `Element 'summary': [facet 'maxLength'] The value has a length of '154'; this exceeds the allowed maximum length of '128'.`. New form drops the "pull requests" long-form for `PRs` and merges the trailing `and a contribution heatmap` into the enumerated list. No functional change; App Store metadata only.
+
 ## [1.3.0] - 2026-08-14
 
 Full security-hardening pass driven by the OWASP Top 10 (2021) + adjacent-concerns audit. Ten findings, no Highs, all landed. See `SECURITY.md` for the full mapping; per-finding notes below.
@@ -151,7 +156,8 @@ First Nextcloud App Store release. Eleven configurable dashboard widgets, OAuth 
 
 Initial scaffold — fork of [`njordium/integration_suitecrm`](https://github.com/njordium/integration_suitecrm) with a full rename pass (`SuiteCRM` → `ForgejoGitea`, namespace `OCA\ForgejoGitea`, app id `integration_forgejo_gitea`). No user-facing functionality yet — placeholder widget stubs, settings-page skeleton, webpack build pipeline in place.
 
-[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/njordium/integration_forgejo_gitea/compare/v1.1.4...v1.2.0
