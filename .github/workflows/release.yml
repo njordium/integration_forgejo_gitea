@@ -1,122 +1,264 @@
+# On tag push (v*), replays the Lint & Test gate against the tagged
+# commit, builds the Vue bundles fresh, packages the app as both a
+# .zip (direct-install convenience) and a .tar.gz (App Store format),
+# publishes a GitHub Release with both archives + SHA-256 checksums
+# attached.
+#
+# Why the tarball must be built this way: `git archive --format=tar`
+# emits a `pax_global_header` entry (holds the commit id in an
+# extended header). Nextcloud's `\OC\Installer` uses PEAR's
+# `Archive_Tar` which mishandles that entry and silently produces a
+# broken extract, then errors with `Extracted app <app-id> has more
+# than 1 folder`. The App Store validator DOES accept a pax-headered
+# tarball (uses a different parser), so a paxed release ships and
+# looks fine on apps.nextcloud.com but every client-side install
+# fails. We therefore rsync into a staging dir and repack with plain
+# `tar czf` (GNU tar default format on Ubuntu — no pax extensions).
+
+name: Release
+
 on:
   push:
-    branches: [release]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v1.3.2). Must match appinfo/info.xml <version> on push events; skipped on dispatch dev-runs.'
+        required: true
+        default: 'v0.0.0-dev'
 
-name: Publish release
+permissions:
+  contents: write
 
 jobs:
-  build:
-    name: Build, upload and release in the appstore
-    environment: release
-    env:
-      APP_ID: integration_forgejo_gitea
-    runs-on: ubuntu-latest
+  build-and-release:
+    runs-on: ubuntu-24.04
     steps:
-      - name: Use Node 14
-        uses: actions/setup-node@v2
-        with:
-          node-version: 14
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - name: Set up npm
-        run: npm i -g npm
+      - name: Determine version
+        id: version
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Building version: ${VERSION}"
 
-      - name: Setup PHP
+      # Gate 1: appinfo/info.xml <version> MUST match the pushed tag.
+      # Nextcloud reads its update-detection version from info.xml, not
+      # from the git tag — a drift ships a release that installs as one
+      # version but claims to be another, and users never get an update
+      # prompt when the next version lands.
+      - name: Verify appinfo/info.xml <version> matches tag
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.version }}"
+          TAG_BARE="${TAG#v}"
+          INFO_VERSION=$(grep -oE '<version>[^<]+</version>' appinfo/info.xml | head -1 | sed -E 's|</?version>||g')
+          echo "Tag version (leading 'v' stripped): $TAG_BARE"
+          echo "appinfo/info.xml <version>: $INFO_VERSION"
+          if [ "$TAG_BARE" != "$INFO_VERSION" ]; then
+            echo "::error::Tag v${TAG_BARE} does not match appinfo/info.xml <version>${INFO_VERSION}</version>."
+            echo "Fix: update <version> in appinfo/info.xml on the tagged commit, retag, and push the corrected tag."
+            exit 1
+          fi
+          echo "Version sync OK."
+
+      # Gate 2: cap-check info.xml text fields. The App Store validator
+      # rejects <summary> >128 chars and <name> >40 chars; catching this
+      # here is cheaper than a failed apps.nextcloud.com submission.
+      - name: Verify appinfo/info.xml caps
+        run: |
+          set -euo pipefail
+          SUMMARY_LEN=$(awk -F'</?summary>' '/<summary>/ {print length($2); exit}' appinfo/info.xml)
+          NAME_LEN=$(awk -F'</?name>' '/<name>/ {print length($2); exit}' appinfo/info.xml)
+          echo "<summary> length: $SUMMARY_LEN (cap 128)"
+          echo "<name> length: $NAME_LEN (cap 40)"
+          if [ "$SUMMARY_LEN" -gt 128 ]; then
+            echo "::error::<summary> is $SUMMARY_LEN chars — App Store cap is 128."
+            exit 1
+          fi
+          if [ "$NAME_LEN" -gt 40 ]; then
+            echo "::error::<name> is $NAME_LEN chars — App Store cap is 40."
+            exit 1
+          fi
+
+      # Gate 3: replay the Lint & Test suite as prerequisite steps so a
+      # tagged commit that is red on `main` can't accidentally publish.
+      - name: Setup PHP (8.1 — declared min in appinfo/info.xml)
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '7.4'
-          extensions: mbstring, intl, sqlite3
-          ini-values: post_max_size=256M, max_execution_time=180
-          coverage: xdebug
-          tools: php-cs-fixer, phpunit
+          php-version: '8.1'
+          coverage: none
+          tools: composer:v2
 
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Install composer deps
+        run: composer install --prefer-dist --no-progress --no-interaction
 
-      - name: Get current tag
-        id: tag
-        run: |
-          git fetch --tags --force
-          tag=$(git tag -l --points-at HEAD)
-          vtag=$(echo $tag | grep "^v[0-9]\+\.[0-9]\+\.[0-9]\+" || echo "")
-          echo "##[set-output name=currenttag;]$vtag"
+      - name: PHP syntax check (lib + appinfo + tests)
+        run: find lib appinfo tests -name '*.php' -print0 | xargs -0 -n1 php -l
 
-      - name: Build project
-        if: ${{ startsWith( steps.tag.outputs.currenttag , 'v' ) }}
-        id: build_release
-        run: |
-          echo "##[set-output name=app_id;]$APP_ID"
-          echo "###### copy certificate"
-          mkdir -p ~/.nextcloud/certificates
-          echo "$APP_CRT" > ~/.nextcloud/certificates/${APP_ID}.crt
-          echo "$APP_KEY" > ~/.nextcloud/certificates/${APP_ID}.key
-          echo "###### install dependencies"
-          export DEBIAN_FRONTEND=noninteractive
-          sudo apt update -y
-          sudo apt install make openssl -y
-          echo "###### installing nextcloud"
-          mkdir ~/html
-          git clone https://github.com/nextcloud/server.git --recursive --depth 1 -b master ~/html/nextcloud
-          sed -i $'s|if (substr($fullPath, 0, strlen($root) + 1) === $root . \'/\')|if (is_string($root) and substr($fullPath, 0, strlen($root) + 1) === $root . \'/\')|g' ~/html/nextcloud/lib/autoloader.php
-          cp -r $GITHUB_WORKSPACE ~/html/nextcloud/apps/${APP_ID}
-          php ~/html/nextcloud/occ maintenance:install --database "sqlite" --admin-user "admin" --admin-pass "password"
-          php ~/html/nextcloud/occ app:enable ${APP_ID}
-          php ~/html/nextcloud/occ maintenance:mode --off
-          cd ~/html/nextcloud/apps/${APP_ID}
-          echo "###### npm install"
-          npm ci
-          echo "###### npm run build"
-          npm run build
-          echo "###### make appstore"
-          tag=${{ steps.tag.outputs.currenttag }}
-          version=${tag/v/}
-          webserveruser=runner occ_dir=~/html/nextcloud version=$version make appstore
-          echo "##[set-output name=version;]$version"
-        env:
-          APP_CRT: ${{ secrets.APP_CRT }}
-          APP_KEY: ${{ secrets.APP_KEY }}
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse --configuration phpstan.neon --no-progress
 
-      - name: Create Release
-        if: ${{ startsWith( steps.tag.outputs.currenttag , 'v' ) }}
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: PHPUnit
+        run: vendor/bin/phpunit --configuration phpunit.xml
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
         with:
-          tag_name: ${{ steps.tag.outputs.currenttag }}
-          release_name: ${{ steps.tag.outputs.currenttag }}
-          draft: false
-          prerelease: false
+          node-version: '20'
+          cache: 'npm'
 
-      - name: Upload Release Asset
-        if: ${{ startsWith( steps.tag.outputs.currenttag , 'v' ) }}
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: JS lint (eslint on src/)
+        run: npm run lint
+
+      - name: Style lint (stylelint on src + css)
+        run: npm run stylelint
+
+      - name: Build production bundles
+        run: npm run build
+
+      - name: Confirm bundles were produced
+        run: |
+          set -euo pipefail
+          ls -la js/
+          test -f js/integration_forgejo_gitea-personalSettings.js
+          test -f js/integration_forgejo_gitea-adminSettings.js
+          test -f js/integration_forgejo_gitea-dashboard.js
+
+      # Package + checksum.
+      # Staging via rsync (not `git archive`) so the tarball we hand to
+      # `tar czf` has no pax_global_header entry — see the header
+      # comment for the full explanation of why this matters.
+      - name: Package for Nextcloud
+        id: package
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          STAGING=/tmp/pkg
+          mkdir -p "${STAGING}/integration_forgejo_gitea"
+
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            --exclude='.gitattributes' \
+            --exclude='.DS_Store' \
+            --exclude='.l10nignore' \
+            --exclude='.tx/' \
+            --exclude='node_modules/' \
+            --exclude='src/' \
+            --exclude='tests/' \
+            --exclude='vendor/' \
+            --exclude='phpunit.xml' \
+            --exclude='phpstan.neon' \
+            --exclude='eslint.config.mjs' \
+            --exclude='stylelint.config.js' \
+            --exclude='webpack.js' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='Makefile' \
+            --exclude='makefile' \
+            --exclude='docker/' \
+            --exclude='.editorconfig' \
+            --exclude='.prettierrc*' \
+            --exclude='.vscode/' \
+            --exclude='.idea/' \
+            --exclude='.phpunit.cache/' \
+            --exclude='.phpunit.result.cache' \
+            ./ "${STAGING}/integration_forgejo_gitea/"
+
+          echo "--- Package contents (first 60 files) ---"
+          find "${STAGING}/integration_forgejo_gitea" -type f | sort | head -60
+          echo "--- Total size ---"
+          du -sh "${STAGING}/integration_forgejo_gitea"
+
+          ZIP="/tmp/integration_forgejo_gitea-${VERSION}.zip"
+          (cd "${STAGING}" && zip -r "${ZIP}" integration_forgejo_gitea/)
+          ls -la "${ZIP}"
+
+          # App Store requires tar.gz; direct-install admins still get
+          # the zip. Both formats hold byte-identical file trees.
+          TARGZ="/tmp/integration_forgejo_gitea-${VERSION}.tar.gz"
+          (cd "${STAGING}" && tar czf "${TARGZ}" integration_forgejo_gitea/)
+          ls -la "${TARGZ}"
+
+          # Assert no pax_global_header ended up in the tarball. If it
+          # did, the release would ship broken even though every earlier
+          # gate passed — the trap we're guarding against.
+          if gunzip -c "${TARGZ}" | head -c 8 | grep -q 'pax_glob'; then
+            echo "::error::Built tarball contains pax_global_header. This will break PEAR Archive_Tar on the Nextcloud client. Repackage with plain tar."
+            exit 1
+          fi
+          echo "Tarball shape OK (no pax_global_header)."
+
+          # Also assert exactly one top-level entry.
+          TOP_COUNT=$(tar -tzf "${TARGZ}" | awk -F/ '{print $1}' | sort -u | wc -l)
+          if [ "${TOP_COUNT}" -ne 1 ]; then
+            echo "::error::Tarball has ${TOP_COUNT} top-level entries; expected exactly 1."
+            exit 1
+          fi
+
+          # SHA-256 for supply-chain verification via `sha256sum -c`.
+          ZIP_SHA256="${ZIP}.sha256"
+          (cd "$(dirname "${ZIP}")" && sha256sum "$(basename "${ZIP}")" > "${ZIP_SHA256}")
+          TARGZ_SHA256="${TARGZ}.sha256"
+          (cd "$(dirname "${TARGZ}")" && sha256sum "$(basename "${TARGZ}")" > "${TARGZ_SHA256}")
+          echo "--- SHA-256 checksums ---"
+          cat "${ZIP_SHA256}" "${TARGZ_SHA256}"
+
+          echo "zip=${ZIP}" >> "$GITHUB_OUTPUT"
+          echo "sha256=${ZIP_SHA256}" >> "$GITHUB_OUTPUT"
+          echo "targz=${TARGZ}" >> "$GITHUB_OUTPUT"
+          echo "targz_sha256=${TARGZ_SHA256}" >> "$GITHUB_OUTPUT"
+
+      - name: Create/update GitHub Release with assets
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v3
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: /tmp/build/${{ steps.build_release.outputs.app_id }}-${{ steps.build_release.outputs.version }}.tar.gz
-          asset_name: ${{ steps.build_release.outputs.app_id }}-${{ steps.build_release.outputs.version }}.tar.gz
-          asset_content_type: application/gzip
+          files: |
+            ${{ steps.package.outputs.zip }}
+            ${{ steps.package.outputs.sha256 }}
+            ${{ steps.package.outputs.targz }}
+            ${{ steps.package.outputs.targz_sha256 }}
+          body: |
+            Automated build for ${{ steps.version.outputs.version }}.
 
-      - name: Publish to appstore
-        if: ${{ startsWith( steps.tag.outputs.currenttag , 'v' ) && !endsWith( steps.tag.outputs.currenttag , 'nightly' ) }}
-        id: publish
-        run: |
-          SIGNATURE=$(cat /tmp/build/sign.txt | tr -d '\n')
-          VERSION=${{ steps.build_release.outputs.version }}
-          DOWNLOAD_URL=https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${APP_ID}-${VERSION}.tar.gz
-          curl -X POST -H "Authorization: Token $APPSTORE_TOKEN" https://apps.nextcloud.com/api/v1/apps/releases -H "Content-Type: application/json" -d '{"download":"'${DOWNLOAD_URL}'", "signature": "'${SIGNATURE}'"}'
-        env:
-          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+            **Install (direct):** download `integration_forgejo_gitea-${{ steps.version.outputs.version }}.zip` below, extract into your Nextcloud `custom_apps/` directory (this is the third-party app directory — do **not** use the bundled `apps/` directory), then enable via **Apps → Integration → Forgejo / Gitea integration**.
 
-      - name: Publish nightly release to appstore
-        if: ${{ startsWith( steps.tag.outputs.currenttag , 'v' ) && endsWith( steps.tag.outputs.currenttag , 'nightly' ) }}
-        id: nightly
-        run: |
-          SIGNATURE=$(cat /tmp/build/sign.txt | tr -d '\n')
-          VERSION=${{ steps.build_release.outputs.version }}
-          DOWNLOAD_URL=https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${APP_ID}-${VERSION}.tar.gz
-          curl -X POST -H "Authorization: Token $APPSTORE_TOKEN" https://apps.nextcloud.com/api/v1/apps/releases -H "Content-Type: application/json" -d '{"download":"'${DOWNLOAD_URL}'", "signature": "'${SIGNATURE}'", "nightly": true}'
-        env:
-          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+            **Install (Nextcloud App Store):** search for **Forgejo / Gitea integration** in your Nextcloud admin panel — the App Store record is fed from `integration_forgejo_gitea-${{ steps.version.outputs.version }}.tar.gz` (same file tree as the zip, tar.gz format required by the store).
+
+            **Verify the download:**
+            ```
+            sha256sum -c integration_forgejo_gitea-${{ steps.version.outputs.version }}.zip.sha256
+            sha256sum -c integration_forgejo_gitea-${{ steps.version.outputs.version }}.tar.gz.sha256
+            ```
+
+            Both archives include pre-built `js/` bundles — no `npm run build` needed on the target server.
+
+            See [CHANGELOG](https://github.com/njordium/integration_forgejo_gitea/blob/main/CHANGELOG.md) for the full change list and [README](https://github.com/njordium/integration_forgejo_gitea/blob/main/README.md) for admin setup and troubleshooting.
+
+      - name: Upload artifact (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration_forgejo_gitea-${{ steps.version.outputs.version }}
+          path: |
+            ${{ steps.package.outputs.zip }}
+            ${{ steps.package.outputs.sha256 }}
+            ${{ steps.package.outputs.targz }}
+            ${{ steps.package.outputs.targz_sha256 }}
+          retention-days: 30
