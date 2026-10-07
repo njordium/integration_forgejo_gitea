@@ -154,6 +154,12 @@ class ForgejoGiteaAPIService {
 	 * authorization_code and refresh_token grants.
 	 */
 	public function requestOAuthAccessToken(string $instanceUrl, array $params): array {
+		$secret = (string) ($params['client_secret'] ?? '');
+		$code = (string) ($params['code'] ?? '');
+		$refreshToken = (string) ($params['refresh_token'] ?? '');
+		$grantType = (string) ($params['grant_type'] ?? '');
+		$host = (string) (parse_url($instanceUrl, PHP_URL_HOST) ?: '');
+
 		try {
 			$url = rtrim($instanceUrl, '/') . '/login/oauth/access_token';
 			$client = $this->clientService->newClient();
@@ -166,13 +172,39 @@ class ForgejoGiteaAPIService {
 				'timeout' => 30,
 				'http_errors' => false,
 			]);
+			$status = $response->getStatusCode();
 			$body = (string) $response->getBody();
 			$decoded = json_decode($body, true);
+
+			if (is_array($decoded) && isset($decoded['access_token'])) {
+				return $decoded;
+			}
+
+			// No access_token — log enough for operators to distinguish OAuth
+			// errors (JSON from Forgejo/Gitea) from proxy/WAF blocks (HTML 403,
+			// etc.). Never forward this detail to the client.
+			$contentType = $response->getHeader('Content-Type');
+			$context = [
+				'grant_type' => $grantType,
+				'host' => $host,
+				'status' => $status,
+				'content_type' => $contentType,
+			];
+			if (is_array($decoded)) {
+				$context['error'] = (string) ($decoded['error'] ?? '');
+				$context['error_description'] = substr((string) ($decoded['error_description'] ?? ''), 0, 200);
+			} else {
+				$context['error'] = 'invalid_response';
+				$preview = preg_replace('/\s+/', ' ', $this->redactSecrets($body, $secret, $code, $refreshToken)) ?? '';
+				$context['body_preview'] = substr($preview, 0, 160);
+			}
+			$this->logger->warning('OAuth token exchange failed', $context);
+
 			return is_array($decoded) ? $decoded : ['error' => 'invalid_response'];
 		} catch (Throwable $e) {
-			$secret = (string) ($params['client_secret'] ?? '');
-			$refreshToken = (string) ($params['refresh_token'] ?? '');
 			$this->logger->warning('OAuth token exchange failed', [
+				'grant_type' => $grantType,
+				'host' => $host,
 				'reason' => $this->redactSecrets($e->getMessage(), $secret, $refreshToken),
 			]);
 			return ['error' => 'token_exchange_failed'];

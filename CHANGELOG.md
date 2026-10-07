@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+### Changed
+- **OAuth token-exchange failures now log HTTP status and upstream detail for operators.** When `/login/oauth/access_token` returns without an `access_token` (wrong client secret, redirect mismatch, nginx/WAF 403 HTML, etc.), the service logs `status`, `content_type`, OAuth `error` / `error_description` when JSON, or a short redacted `body_preview` when the body is not JSON. Transport exceptions still log a redacted `reason`. Client-facing responses stay generic (`token_exchange_failed` / `invalid_response`).
+
 ## [1.3.3] - 2026-08-21
 
 ### Fixed
